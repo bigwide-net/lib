@@ -1,0 +1,1539 @@
+/* Post rendering of postviewer: the post card parts (createPostParts), the post body
+ * (.postBody) with its embeds, consent overlays and the image viewer.
+ *
+ * Load together with post-tailwind.css and post-tailwind-responsive.css (Tailwind utilities that
+ * feeds ship inside post bodies).
+ *
+ * Theming: all colors and fonts come from the --pv-* custom properties below. The defaults are a
+ * light palette with zero specificity, so an app sets its own on :root (or any ancestor of the
+ * posts) regardless of stylesheet order, and redefines them for dark mode. Only the full-screen
+ * image viewer, the video players and the consent overlays keep fixed dark colors. The body font
+ * size is --pv-font-size; the body font --pv-body-font (inherited when unset).
+ */
+
+:where(:root) {
+  --pv-text: #333;               /* body text, titles */
+  --pv-text-strong: #000;        /* titles of embedded post cards */
+  --pv-text-soft: #444;          /* table captions */
+  --pv-text-quote: #555;         /* blockquotes, embedded post excerpts */
+  --pv-text-muted: #666;         /* meta line, byline, secondary text */
+  --pv-text-faint: #999;         /* time, figure captions, credits */
+  --pv-accent: #4a90e2;          /* links, feed name, quote bars */
+  --pv-accent-20: #4a90e233;     /* link underlines */
+  --pv-accent-40: #4a90e266;     /* quote bars inside asides */
+  --pv-surface: #fff;            /* embedded post cards */
+  --pv-border: #d4dde8;          /* aside callout cards */
+  --pv-rule: #e0e0e0;            /* table rules, embedded card borders */
+  --pv-rule-strong: #bbb;        /* table header rule */
+  --pv-divider: #ddd;            /* meta bullet, embedded card button border */
+  --pv-tint: #f5f5f5;            /* blockquote, code and pre backgrounds */
+  --pv-placeholder: #f0f0f0;     /* lead image while loading */
+  --pv-placeholder-border: #888; /* "chart not supported" box */
+  --pv-code: #e83e8c;            /* inline code */
+  --pv-digest-cta: #7c3aed;      /* Substack digest card call to action */
+  --pv-ui-font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; /* captions, asides, tables */
+}
+
+.postHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  min-width: 0;
+  gap: 8px;
+}
+
+.postMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--pv-text-muted);
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.postFeed {
+  color: var(--pv-accent);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.postDivider {
+  color: var(--pv-divider);
+}
+
+/* Feed name • @socialspec handle (feedHandle). */
+.postSource {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.postHandle {
+  color: var(--pv-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+a.postHandle:hover {
+  text-decoration: underline;
+}
+
+.postTime {
+  color: var(--pv-text-faint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.postTitle {
+  margin: 0 0 16px 0;
+  font-size: calc(var(--pv-font-size, 16px) + 6px);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--pv-text);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.postTitle a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.postByline {
+  margin-bottom: 24px;
+  font-size: calc(var(--pv-font-size, 16px) - 2px);
+  color: var(--pv-text-muted);
+}
+
+.postAuthor {
+  font-weight: 600;
+  color: var(--pv-text);
+}
+
+/* Author name that reveals the email address on click. */
+.postAuthor.postAuthorToggle {
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+/* Reply fallback markup (NO_SOURCE_INREPLYTO_CLASS) that blog generators add for readers without
+   source:inReplyTo support; we show the reply target in the byline instead. */
+.postBody .no-source-inreplyto {
+  display: none;
+}
+
+/* "In reply to <link>" (source:inReplyTo), the byline's second line. */
+.postInReplyTo {
+  overflow-wrap: anywhere;
+}
+.postByline > .postInReplyTo:not(:first-child) {
+  margin-top: 4px;
+}
+.postInReplyTo .replyIcon {
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+.postInReplyTo a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.postImage {
+  margin-bottom: 24px;
+}
+
+.postImage img {
+  max-width: 100%;
+  max-height: 300px;
+  width: auto;
+  height: auto;
+  border-radius: 4px;
+  display: block;
+}
+
+/* Placeholder while the lead image loads (post-dom-factory.ts): most are taller than the
+   max-height, so reserving it avoids a layout shift. */
+.postImage img.postImageLoading {
+  width: 100%;
+  height: 300px;
+  background: var(--pv-placeholder);
+}
+
+/* Native player for an audio/video enclosure (post-content.ts createMediaPlayer). */
+.postMedia {
+  margin-bottom: 24px;
+}
+
+.postMedia audio,
+.postMedia video {
+  display: block;
+  width: 100%;
+}
+
+.postMedia video {
+  max-height: 70vh;
+  border-radius: 4px;
+  background: #000;
+}
+
+.youtubePlayer {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 24px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+  cursor: pointer;
+}
+
+.youtubeThumb,
+.youtubeIframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.youtubeThumb {
+  object-fit: cover;
+}
+
+.youtubePlayButton {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 68px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(18, 18, 18, 0.75);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 4px;
+  pointer-events: none;
+  transition: background 0.15s ease;
+}
+
+.youtubePlayer:hover .youtubePlayButton {
+  background: #f00;
+}
+
+.youtubeStats {
+  margin: -12px 0 24px;
+  font-size: 14px;
+  color: var(--pv-text-muted);
+}
+
+.postBody {
+  font-family: var(--pv-body-font, inherit);
+  font-size: var(--pv-font-size, 16px);
+  line-height: 1.7;
+  color: var(--pv-text);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
+/* Image captions stay in the app's sans-serif font even when the body is serif. */
+.postBody figcaption {
+  font-family: var(--pv-ui-font);
+}
+
+.postBody * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Responsive-iframe wrapper hack: a div using percentage padding-bottom (and
+   sometimes height:0) to reserve aspect space for an absolutely-positioned
+   iframe. We strip the iframe's positioning and give it an intrinsic
+   aspect-ratio, so the wrapper's reserved space is now just a dead gap. */
+.postBody div[style*="padding-bottom"]:has(> iframe) {
+  padding-bottom: 0 !important;
+  height: auto !important;
+  margin-bottom: 1em;
+}
+
+/* Newsletter / RSS HTML frequently uses layout tables with legacy width
+   attributes on the table or its cells. Even with `.postBody * { max-width:100% }`,
+   a table whose fixed-width cells sum past the container can break out of our
+   column. Cap the table at the container width (the browser's auto layout then
+   compresses the columns to fit) and let long cell content wrap instead of
+   forcing the table wider. We deliberately avoid `table-layout: fixed` (distorts
+   multi-column newsletter layouts) and `border-collapse` (would void cellspacing).
+
+   `display: block` is what makes this work in Safari/WebKit: with the default
+   `display: table`, WebKit ignores `max-width: 100%` on an image inside an
+   auto-layout cell (the percentage resolves against the cell width, which is
+   itself set by the image's intrinsic width — a circular dependency WebKit
+   treats as "no constraint"), so the image keeps full size and the table breaks
+   out of the column. As a block box the table is capped at the column width, the
+   image's max-width then resolves against a definite width and compresses (as it
+   already did in Chrome). Anonymous table-row/cell boxes are still generated, so
+   multi-column layouts stay intact; genuinely-wide tables scroll horizontally
+   instead of overflowing the page. */
+.postBody table {
+  max-width: 100%;
+  display: block;
+  overflow-x: auto;
+}
+
+/* `display: block` above costs us table-shrink-wrap: a block box with
+   `width: auto` fills the whole column, so a publisher's `align="center"` (which
+   the UA maps to `margin-inline: auto`) can no longer center it — auto margins
+   only center a box with a definite/shrink-to-fit width. Newsletters center
+   section headers and icons this exact way (a no-width `<table align="center">`
+   wrapping short content), so they regressed to left-aligned. Restoring
+   `width: fit-content` makes the block shrink to its content again, so the
+   margins re-center it. `max-width: 100%` still caps it, so a wide image inside
+   a centered table keeps compressing (verified in WebKit) — the block image fix
+   is intact. `fit-content` is self-balancing: when the content's preferred width
+   exceeds the column (long paragraphs, wide images), it resolves to the full
+   column width, so `width="100%"` centered tables — which newsletters use as
+   their main column — stay full-width; only genuinely narrow content (a header,
+   an icon) shrink-wraps and centers. So this must apply to ALL centered tables,
+   including `width="100%"` ones (TLDR's centered headers are exactly those). */
+.postBody table[align="center"] {
+  width: fit-content;
+}
+
+.postBody td,
+.postBody th {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Data tables. A <table> wrapped in a <figure>, carrying its own <caption>, or
+   with header cells (a <thead>, or <th> in its own rows — the child paths keep a
+   layout table from matching through a nested data table), is presenting data —
+   not the layout scaffolding most newsletter HTML uses tables for, which is why
+   the generic rules above stay deliberately neutral. This markup says "table of
+   data", so give it what makes one readable: a ruled header, row
+   separators, real cell padding, and the UI sans-serif (figures and headers align
+   better than in the reading serif). display:table restores real table layout so
+   the columns share the reading column's width; the enclosing <figure> keeps its
+   own overflow-x: auto, so a table too wide to fit scrolls there rather than
+   breaking out. `table[align="center"]` above stays more specific, so a publisher
+   that explicitly centered a narrow table still gets its shrink-wrap. */
+.postBody :is(figure table, table:has(> caption, > thead, > tbody > tr > th)) {
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-family: var(--pv-ui-font);
+  font-size: 0.9em;
+  line-height: 1.45;
+}
+
+/* Real table layout — so the columns share out the reading column's width — but
+   only inside a <figure>, which brings the overflow-x: auto scroll container an
+   over-wide table needs. A bare captioned table keeps the generic display:block
+   above and scrolls itself; it shrink-wraps instead of filling the column, which
+   is the safe half of the trade. */
+.postBody figure table {
+  display: table;
+  width: 100%;
+}
+
+.postBody :is(figure table, table:has(> caption, > thead, > tbody > tr > th)) :is(th, td) {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--pv-rule);
+  text-align: left;
+  vertical-align: top;
+  /* Undo the generic cells' `word-break: break-word`. That value is the legacy
+     alias for `overflow-wrap: anywhere`, which — unlike `overflow-wrap:
+     break-word` — lets the break opportunities it introduces count towards a
+     box's min-content width. In an auto-layout table that drops every column's
+     minimum to roughly one character, so the browser is free to squeeze the
+     narrowest-content column (usually the row-label column) far below its
+     longest word and hyphen-less mid-word breaks appear ("Catego/ries").
+     Layout tables still need the aggressive value to stay inside the column;
+     data tables would rather scroll than be distorted. */
+  word-break: normal;
+}
+
+/* Flush the outer edges with the body text: the table is part of the column, not
+   an indented block. Cells pushed off the row edge by a rowspan above
+   (markRowspanShiftedCells) keep their padding. */
+.postBody :is(figure table, table:has(> caption, > thead, > tbody > tr > th)) :is(th, td):first-child:not(.afterRowspan) {
+  padding-left: 0;
+}
+
+.postBody :is(figure table, table:has(> caption, > thead, > tbody > tr > th)) :is(th, td):last-child:not(.beforeRowspan) {
+  padding-right: 0;
+}
+
+/* Row labels (<th scope="row">) keep the emphasis; only the header row gets the
+   heavy rule. `tr:first-child:not(:has(td))` catches header rows in tables that
+   never opened a <thead> — common in feed HTML. */
+.postBody :is(figure table, table:has(> caption, > thead, > tbody > tr > th)) th {
+  font-weight: 600;
+  color: var(--pv-text);
+}
+
+.postBody :is(figure table, table:has(> caption, > thead, > tbody > tr > th)) :is(thead > tr, tr:first-child:not(:has(td))) > th {
+  border-bottom: 2px solid var(--pv-rule-strong);
+}
+
+/* The last row's rule would double up with the figcaption's own separation. */
+.postBody :is(figure table, table:has(> caption, > thead, > tbody > tr > th)) tbody > tr:last-child > :is(th, td) {
+  border-bottom: 0;
+}
+
+/* A <caption> the publisher supplied: a title for the data, styled like the
+   figcaption below but sitting above the table where the markup puts it. */
+.postBody table > caption {
+  margin-bottom: 6px;
+  font-family: var(--pv-ui-font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pv-text-soft);
+  text-align: left;
+}
+
+/* Description lists (spec sheets, key/value metadata) look like a two-column data
+   table: term left, description right, a rule between rows. A grid rather than
+   rewriting the markup into a <table>: it keeps the DOM as published and handles
+   every shape HTML allows — bare dt/dd runs, the HTML5 `<div>` grouping (flattened
+   with display: contents), several <dd> for one <dt> (auto-placement drops each
+   extra dd into column 2 of the next row) and several <dt> for one <dd>. Grid
+   items in a row stretch to the row height, so per-cell borders line up like
+   table rules. fit-content(40%) sizes the term column to its longest term but
+   never lets it take more than 40% of the column.
+   Lists carrying media or block content are something else — old WordPress
+   galleries are `<dl class="gallery-item"><dt><img>` and glossaries hold
+   paragraphs — so they keep the default indented rendering. */
+.postBody dl:not(:has(img, picture, video, iframe, p, ul, ol, table, pre, blockquote, figure)) {
+  display: grid;
+  grid-template-columns: fit-content(40%) 1fr;
+  margin: 8px 0 16px 0;
+  font-family: var(--pv-ui-font);
+  font-size: 0.9em;
+  line-height: 1.45;
+}
+
+.postBody dl:not(:has(img, picture, video, iframe, p, ul, ol, table, pre, blockquote, figure)) > div {
+  display: contents;
+}
+
+.postBody dl:not(:has(img, picture, video, iframe, p, ul, ol, table, pre, blockquote, figure)) :is(dt, dd) {
+  margin: 0;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--pv-rule);
+  overflow-wrap: break-word;
+}
+
+.postBody dl:not(:has(img, picture, video, iframe, p, ul, ol, table, pre, blockquote, figure)) dt {
+  grid-column: 1;
+  padding-left: 0;
+  font-weight: 600;
+  color: var(--pv-text);
+}
+
+.postBody dl:not(:has(img, picture, video, iframe, p, ul, ol, table, pre, blockquote, figure)) dd {
+  grid-column: 2;
+  padding-right: 0;
+}
+
+.postBody p {
+  margin: 0 0 16px 0;
+}
+
+.postBody h2 {
+  margin: 32px 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--pv-text);
+}
+
+.postBody h3 {
+  margin: 24px 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pv-text);
+}
+
+.postBody ul,
+.postBody ol {
+  margin: 16px 0;
+  padding-left: 24px;
+}
+
+/* A nested list belongs to the <li> it hangs off: the parent item's own line already
+   provides the separation, so the top margin would only push it away from its label. */
+.postBody li > :is(ul, ol) {
+  margin-top: 0;
+}
+
+.postBody li {
+  margin-bottom: 8px;
+}
+
+.postBody a {
+  color: var(--pv-accent);
+  text-decoration: none;
+  border-bottom: 1px solid var(--pv-accent-20);
+  transition: border-color 0.15s ease;
+}
+
+/* A link wrapping a picture — alone, or with a caption/title beside it, as in related-post
+   cards — would draw its underline across or beneath the image; the image is the affordance.
+   Glyph images (FEED_GLYPH_CLASS) are text, so a link with an emoji keeps its underline.
+   Cards that draw their own box are excluded: this selector outranks theirs and would erase
+   the box's bottom edge. */
+.postBody a:has(img:not(.feed-glyph)):not(.embedded-post, .digest-post-embed-card) {
+  border-bottom: none;
+}
+
+@media (hover: hover) {
+  .postBody a:hover {
+    border-bottom-color: var(--pv-accent);
+  }
+}
+
+/* A <button> in feed content is style, not function: the sanitizer turns it into a
+   <span class="feed-button"> (see FEED_BUTTON_CLASS in shared/utils/sanitize.ts). Draw the box it
+   had on the publisher's page so a call to action still reads as one instead of as a stray line
+   of text. Everything is currentColor-based, so it works both in the reader and on the light
+   share card, and takes the link color when the button sits inside a link (the usual case). */
+.postBody .feed-button {
+  display: inline-block;
+  margin: 4px 0;
+  padding: 6px 16px;
+  border: 1px solid currentColor;
+  border-radius: 7px;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* A button that is NOT inside a link has nowhere to go: its behaviour was the JS we strip,
+   so drawing the pill only invites a click that does nothing. Drop it entirely. `a *` matches
+   through any wrapper, so a button nested deeper inside the link still shows. */
+.postBody span.feed-button:not(a *) {
+  display: none;
+}
+
+/* The link's own underline would run beneath the whole pill; the button's border is the
+   affordance here, exactly as with a linked image. A link that is itself the button (WordPress'
+   button block, `a.feed-button`) needs no override: `.postBody .feed-button` already outranks
+   `.postBody a`, and a `border-bottom: none` here would erase the pill's bottom edge. */
+.postBody a:has(> .feed-button) {
+  border-bottom: none;
+}
+
+/* Substack's button row (<p class="button-wrapper"><a class="button primary">): centred, as on
+   the site, so "Subscribe now" / "Share" read as calls to action rather than as body links. */
+.postBody .button-wrapper {
+  text-align: center;
+}
+
+/* Substack footnotes. In the text a reference is a bare <a class="footnote-anchor">1</a>, which
+   reads as a stray number; raise it. At the end each note is
+   <div class="footnote"><a class="footnote-number">1</a><div class="footnote-content"><p>…</div></div>,
+   whose two blocks stack the number on a line of its own; put it in a column beside the text. */
+.postBody a.footnote-anchor {
+  font-size: 0.75em;
+  line-height: 0;
+  vertical-align: super;
+  padding: 0 0.1em;
+  border-bottom: none;
+}
+
+.postBody .footnote {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75em;
+  margin: 12px 0;
+  font-size: 0.9em;
+}
+
+.postBody .footnote-number {
+  flex: none;
+  min-width: 1.25em;
+}
+
+.postBody .footnote-content > :first-child {
+  margin-top: 0;
+}
+
+.postBody .footnote-content > :last-child {
+  margin-bottom: 0;
+}
+
+/* A player with nothing to play: paywalled feeds (Stratechery's "Listen to this post") ship an
+   <audio controls> without a source as a placeholder for subscribers. Browsers draw it as a
+   working 0:00 player; grey it out the way the publisher's page does, so it reads as locked. */
+.postBody :is(audio, video):not([src]):not(:has(source[src])) {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* A button with no label — its icon was an inline SVG the sanitizer dropped — would draw an
+   empty pill (Substack's image-carousel arrows). The sanitizer removes these from new content;
+   this covers posts stored before it did. */
+.postBody .feed-button:empty {
+  display: none;
+}
+
+/* An image the feed uses as a character — WordPress' ™/©/emoji PNGs from s.w.org, smilies,
+   inline flag icons — marked by the sanitizer (FEED_GLYPH_CLASS in shared/utils/sanitize.ts).
+   Everything the rules below do for pictures is wrong for a glyph, so undo it: it is one
+   line-height tall, sits in the text flow, and carries no margin, frame or rounding. The height
+   is !important because `.postBody img` forces `height: auto` the same way, and a glyph's own
+   em height would otherwise lose to it. */
+.postBody img.feed-glyph {
+  display: inline;
+  height: 1em !important;
+  width: auto;
+  max-width: 1.5em;
+  margin: 0 0.07em;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  vertical-align: -0.1em;
+}
+
+@media (hover: hover) {
+  .postBody a:hover > .feed-button {
+    background: color-mix(in srgb, currentColor 18%, transparent);
+  }
+}
+
+.postBody img {
+  max-width: 100%;
+  height: auto !important;
+  border-radius: 4px;
+  margin: 16px 0;
+}
+
+/* <video width="1206" height="2622"> (micro.blog screen recordings): the attributes become
+   presentational width/height hints. `.postBody *` caps the width, but nothing reset the
+   height, so a portrait video sat letterboxed in a column-wide, 2600px-tall box. Both
+   dimensions auto lets the browser size it from its intrinsic size (poster until metadata
+   loads) under the max constraints, keeping the aspect ratio. !important because `height`
+   is an allowed inline style and a feed could pin it again. */
+.postBody video {
+  max-width: 100%;
+  max-height: 70vh;
+  width: auto;
+  height: auto !important;
+  border-radius: 4px;
+  margin: 16px 0;
+}
+
+/* An <img> dropped straight into the body next to bare text (MacRumors: hero image,
+   then the article as text nodes and <br>s) is inline, so the first line starts at
+   the image's baseline and the rest wraps underneath. Nobody means that: a top-level
+   image is a figure, so give it its own line. Images inside <p>, <a>, <span> etc.
+   stay inline (icons, badges, WordPress-style floats). */
+.postBody > img {
+  display: block;
+}
+
+/* Tracking pixels and spacers: no margin, and back to inline so they don't add a
+   line of their own. */
+.postBody img[height="1"], .postBody img[height="2"], .postBody img[height="3"],
+.postBody img[height="4"], .postBody img[height="5"], .postBody img[height="6"],
+.postBody img[height="7"], .postBody img[height="8"],
+.postBody img[width="1"], .postBody img[width="2"], .postBody img[width="3"],
+.postBody img[width="4"], .postBody img[width="5"], .postBody img[width="6"],
+.postBody img[width="7"], .postBody img[width="8"] {
+  margin: 0;
+  display: inline;
+}
+
+.postBody blockquote {
+  margin: 16px 0;
+  padding: 12px 20px;
+  border-left: 4px solid var(--pv-accent);
+  background: var(--pv-tint);
+  font-style: italic;
+  color: var(--pv-text-quote);
+}
+
+/* Script-rendered chart mounts the sanitizer emptied (see hydrateUnsupportedCharts). */
+.postBody .unsupportedChart {
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px dashed var(--pv-placeholder-border);
+  border-radius: 6px;
+  text-align: center;
+  font-size: 0.85em;
+  color: var(--pv-text-quote);
+}
+
+/* Attributed quotations (marked by hydrateAttributedQuotes): the publisher's own
+   stylesheet frames these with typographic quote marks and an attribution line,
+   so mimic that. `open-quote` picks the glyphs from the nearest `lang`. */
+.postBody blockquote.attributedQuote > p:first-of-type::before {
+  content: open-quote;
+}
+
+.postBody blockquote.attributedQuote > p:last-of-type::after {
+  content: close-quote;
+}
+
+.postBody blockquote.attributedQuote > cite,
+.postBody blockquote.attributedQuote > footer {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.9em;
+  font-style: normal;
+}
+
+.postBody blockquote.attributedQuote > cite::before,
+.postBody blockquote.attributedQuote > footer::before {
+  content: "\2014\00a0";
+}
+
+/* Social embeds ship as a styled blockquote that embed.js replaces with an
+   iframe. The sanitizer strips the publisher's inline max-width/min-width, so
+   constrain them to the standard embed width here and drop the generic
+   quote-box styling (which otherwise frames the embed / its fallback). */
+.postBody blockquote.tiktok-embed,
+.postBody blockquote.instagram-media,
+.postBody blockquote.text-post-media,
+.postBody blockquote.reddit-embed-bq,
+.postBody blockquote.reddit-card {
+  max-width: 605px;
+  margin: 16px auto;
+  padding: 0;
+  border-left: 0;
+  background: none;
+  font-style: normal;
+  color: inherit;
+}
+
+/* <aside> is the article's own margin note: a pull quote, an editor's note, a
+   "related reading" box. The UA renders it as a plain block, so it reads as the
+   author abruptly changing subject mid-narrative. Give it a card of its own —
+   tinted, bordered, a touch smaller — so it is recognizable as an aside and
+   skippable at a glance. Deliberately unlike blockquote (accent bar + italics =
+   someone else's words); an aside is the same author, stepping aside.
+   normalizeAsides() in post-content.ts drops empty ad-slot asides and marks
+   whole-post wrappers .asidePlain before any of this can box up a whole post. */
+.postBody aside {
+  margin: 20px 0;
+  padding: 12px 16px;
+  border: 1px solid var(--pv-border);
+  border-radius: 6px;
+  /* Sans-serif against the reader's serif body is the strongest signal that this
+     is not the article's own voice — the same trick figcaption uses — and it keeps
+     the card from being read as another blockquote (which is a tinted, italic,
+     accent-barred box). Left unfilled for the same reason. */
+  font-family: var(--pv-ui-font);
+  font-size: 0.85em;
+  line-height: 1.6;
+  color: var(--pv-text-muted);
+}
+
+/* The card owns the outer rhythm — drop the edge margins its content brings. */
+.postBody aside > :first-child {
+  margin-top: 0;
+}
+
+.postBody aside > :last-child {
+  margin-bottom: 0;
+}
+
+/* A heading in here labels the box; it is not a step in the document outline,
+   so it keeps the card's text size instead of the h2/h3 display sizes. */
+.postBody aside h1,
+.postBody aside h2,
+.postBody aside h3,
+.postBody aside h4,
+.postBody aside h5,
+.postBody aside h6 {
+  margin: 0 0 8px 0;
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--pv-text);
+}
+
+.postBody aside p,
+.postBody aside ul,
+.postBody aside ol {
+  margin-bottom: 8px;
+}
+
+.postBody aside li {
+  margin-bottom: 4px;
+}
+
+.postBody aside img {
+  margin: 8px 0;
+}
+
+/* Boxes inside the box: a quote or a nested aside would otherwise be framed
+   twice. Keep the quote's accent bar, drop the second card. */
+.postBody aside blockquote,
+.postBody aside aside {
+  margin: 8px 0;
+  padding: 0 0 0 12px;
+  border: 0;
+  border-left: 3px solid var(--pv-accent-40);
+  border-radius: 0;
+  background: none;
+}
+
+/* Media-only asides (a related video, a chart) get spacing but no padded frame,
+   and whole-post wrappers stay plain body content. */
+.postBody aside.asideMedia,
+.postBody aside.asidePlain {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.postBody aside.asidePlain {
+  margin: 0;
+}
+
+/* Bodies that reach the DOM without normalizeAsides (share page fallbacks,
+   in-flight renders) must never show an empty card. */
+.postBody aside:empty {
+  display: none;
+}
+
+.postBody code {
+  background: var(--pv-tint);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  color: var(--pv-code);
+}
+
+.postBody pre {
+  background: var(--pv-tint);
+  padding: 16px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+.postBody pre code {
+  background: none;
+  padding: 0;
+  color: var(--pv-text);
+}
+
+.postBody figure {
+  max-width: 100%;
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+.postBody figure img {
+  margin: 0;
+  display: block;
+  border: 1px solid var(--pv-text-muted);
+}
+
+/* Lazy-load pattern: a <figure> with more than one <img> where one is a
+   data: URI placeholder (e.g. a 1x1 gif) sitting next to the real image.
+   Hide the data: placeholders so only the real image renders. */
+.postBody figure:has(> img ~ img) > img[src^="data:"] {
+  display: none;
+}
+
+/* Intrinsic-ratio spacer hack: inside a <figure>, a wrapper with an inline
+   padding-top:calc(...) reserves aspect-ratio space for an image the source
+   site absolutely-positions via CSS/JS we strip — leaving only a huge empty
+   gap above the image. Collapse it. Scoped to figure + calc() so ordinary
+   inline padding-top (px/em) elsewhere is unaffected. */
+.postBody figure [style*="padding-top"][style*="calc("] {
+  padding-top: 0 !important;
+}
+
+.postBody figure > figcaption {
+  margin-top: 8px;
+  padding: 0 4px;
+  font-size: 13px;
+  color: var(--pv-text-muted);
+  font-style: italic;
+  text-align: left;
+}
+
+/* A data-table figure's caption lines up with the table's flush left edge; the
+   4px inset above is for captions under images, which are inset by their border.
+   Must follow that rule: browsers disagree on whether :has() adds specificity. */
+.postBody figure:has(> table) > figcaption {
+  padding-left: 0;
+}
+
+.postBody figure > figcaption > p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--pv-text-faint);
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Loose text in a figure, outside its figcaption, is a photo credit: WordPress' image block
+   puts it in <span class="wp-block-image__credit"> after the caption (dpreview.com), and the
+   sanitizer strips the class. Left alone it reads as a stray line of body text under the
+   image; style it like the credit line inside a figcaption above. Wrappers that hold the
+   media itself are not credits. */
+.postBody figure > :is(span, small, cite):not(:has(img, picture, video, iframe)) {
+  display: block;
+  margin-top: 8px;
+  padding: 0 4px;
+  font-family: var(--pv-ui-font);
+  font-size: 12px;
+  font-style: normal;
+  color: var(--pv-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-align: left;
+}
+
+.postBody figure > figcaption + :is(span, small, cite) {
+  margin-top: 2px;
+}
+
+/* Figure-like structure using divs: <div><div><img></div><div>caption</div></div> */
+.postBody div:has(> div:first-child > img:only-child):has(> div:nth-child(2)):not(:has(> *:nth-child(3))) {
+  margin: 16px 0;
+}
+
+.postBody div:has(> div:first-child > img:only-child):has(> div:nth-child(2)):not(:has(> *:nth-child(3))) > div:first-child > img {
+  margin: 0;
+  display: block;
+  border: 1px solid var(--pv-text-muted);
+}
+
+.postBody div:has(> div:first-child > img:only-child):has(> div:nth-child(2)):not(:has(> *:nth-child(3))) > div:nth-child(2) {
+  margin-top: 8px;
+  padding: 0 4px;
+  font-size: 13px;
+  color: var(--pv-text-muted);
+  font-style: italic;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.postBody div:has(> div:first-child > img:only-child):has(> div:nth-child(2)):not(:has(> *:nth-child(3))) > div:nth-child(2) > span:nth-child(2) {
+  font-size: 12px;
+  color: var(--pv-text-faint);
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Caption classes that appear after an image: <div><img><div class="subtitle-2">…</div></div> */
+.postBody .subtitle-1,
+.postBody .subtitle-2 {
+  margin-top: 8px;
+  padding: 0 4px;
+  font-size: 13px;
+  color: var(--pv-text-muted);
+  font-style: italic;
+  text-align: left;
+}
+
+.postBody .subtitle-2 {
+  font-size: 12px;
+  color: var(--pv-text-faint);
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.postBody img:has(+ .subtitle-1),
+.postBody img:has(+ .subtitle-2) {
+  margin-bottom: 0;
+}
+
+/* ── Embedded Substack Post Card ──────────────────────────────────── */
+
+.postBody .embedded-post-wrap {
+  margin: 16px 0;
+}
+
+.postBody a.embedded-post {
+  display: block;
+  border: 1px solid var(--pv-rule);
+  border-radius: 12px;
+  padding: 20px;
+  background: var(--pv-surface);
+  color: var(--pv-text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--pv-rule);
+  transition: box-shadow 0.15s ease;
+}
+
+@media (hover: hover) {
+  .postBody a.embedded-post:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-bottom-color: var(--pv-rule);
+  }
+}
+
+.postBody .embedded-post-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--pv-rule);
+  margin-bottom: 14px;
+}
+
+.postBody .embedded-post-publication-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.postBody .embedded-post-publication-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pv-text);
+}
+
+.postBody .embedded-post-title-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.postBody .embedded-post-title-icon {
+  display: none;
+}
+
+.postBody .embedded-post-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--pv-text-strong);
+  line-height: 1.3;
+}
+
+.postBody .embedded-post-body {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--pv-text-quote);
+  margin-bottom: 14px;
+}
+
+.postBody .embedded-post-cta-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.postBody .embedded-post-cta-icon {
+  display: none;
+}
+
+.postBody .embedded-post-cta {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pv-text);
+  border: 1px solid var(--pv-divider);
+  border-radius: 100px;
+  padding: 5px 14px;
+  background: var(--pv-surface);
+}
+
+.postBody .embedded-post-meta {
+  font-size: 12px;
+  color: var(--pv-text-faint);
+  line-height: 1.4;
+}
+
+/* ── Digest Post Embed (Substack) ────────────────────────────────── */
+
+.postBody .digest-post-embed {
+  margin: 16px 0;
+}
+
+.postBody .digest-post-embed-card {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 16px;
+  border: 1px solid var(--pv-rule);
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.15s ease;
+}
+
+@media (hover: hover) {
+  .postBody .digest-post-embed-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-bottom-color: var(--pv-rule);
+  }
+}
+
+.postBody .digest-post-embed-cover {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.postBody .digest-post-embed-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.postBody .digest-post-embed-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--pv-text-strong);
+  line-height: 1.3;
+}
+
+.postBody .digest-post-embed-meta {
+  font-size: 11px;
+  color: var(--pv-text-faint);
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.postBody .digest-post-embed-cta {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pv-digest-cta);
+  margin-top: 2px;
+}
+
+/* Image-only post caption (e.g. XKCD alt/title reveal) */
+.imgOnlyWrapper {
+  cursor: pointer;
+  user-select: none;
+}
+
+.imgOnlyWrapper img {
+  margin-bottom: 0;
+}
+
+.imgOnlyCaption {
+  margin-top: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--pv-text-muted);
+  font-style: italic;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.imgOnlyCaptionVisible .imgOnlyCaption {
+  opacity: 1;
+}
+
+/* Oversized content images: hint that a click opens the full-resolution viewer */
+.zoomableImage {
+  cursor: zoom-in;
+}
+
+/* Full-screen scrollable image viewer */
+.imageZoomOverlay {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 10000;
+}
+
+/* Scroll surface: a flex column centres the image both horizontally and vertically.
+   'safe' alignment falls back to start when the content is larger than the viewport,
+   so an oversized image is never clipped and can still be panned to any edge via
+   overflow. Its bottom padding is overridden in JS to reserve room for the caption. */
+.imageZoomScroll {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: safe center;
+  justify-content: safe center;
+  padding: 24px;
+  cursor: zoom-out;
+  /* One-finger panning stays native; pinch is disallowed here so the two-finger
+     gesture reaches the viewer's own pinch-zoom handlers. */
+  touch-action: pan-x pan-y;
+}
+
+.imageZoomImg {
+  flex-shrink: 0;
+  max-width: none;
+  cursor: default;
+}
+
+/* Alt caption: pinned to the bottom of the viewport, outside the scroll surface, so
+   it keeps its size and place while the image is zoomed and panned. Pointer events
+   pass through it so it never interrupts a one-finger pan across the bottom edge. */
+.imageZoomAlt {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0 auto;
+  max-width: 720px;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: 8px 8px 0 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Fit-to-screen mode: instead of 1:1, let the image shrink into the flex column, so
+   it is fully visible above the caption without scrolling. */
+.imageZoomFit .imageZoomImg {
+  max-width: 100%;
+  min-height: 0;
+  flex-shrink: 1;
+  object-fit: contain;
+}
+
+/* Controls: zoom in/out + close, fading in on hover. Landscape lays them out as a
+   horizontal "+ − ×" row, portrait as a vertical "× + −" column. The zoom buttons
+   are only removed entirely (display:none, no gap) when the image isn't zoomable;
+   at the ends of the zoom range they idle in place instead (see below), so
+   repeated taps never land on a neighbour that shifted underneath. */
+.imageZoomControls {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+@media (orientation: portrait) {
+  .imageZoomControls {
+    flex-direction: column;
+  }
+  .imageZoomControls .imageZoomClose { order: 1; }
+  .imageZoomControls .imageZoomIn { order: 2; }
+  .imageZoomControls .imageZoomOut { order: 3; }
+}
+
+.imageZoomBtn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+
+.imageZoomOverlay:hover .imageZoomControls,
+.imageZoomControls:has(:focus-visible) {
+  opacity: 1;
+}
+
+.imageZoomBtn:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+/* A zoom button at the end of its range: stays put so the layout is stable, but
+   drops its icon, hover feedback and pointer cursor; clicks are ignored in JS. */
+.imageZoomBtn.imageZoomBtnIdle {
+  cursor: default;
+}
+
+.imageZoomBtn.imageZoomBtnIdle svg {
+  visibility: hidden;
+}
+
+.imageZoomBtn.imageZoomBtnIdle:hover {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+/* No hover on touch devices — keep the controls visible there. */
+@media (hover: none) {
+  .imageZoomControls {
+    opacity: 1;
+  }
+}
+
+
+/* Narrow post column: stack feed name, @handle and time, one per line, without the bullets. */
+@container (max-width: 600px) {
+  .postMeta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .postMeta .postDivider {
+    display: none;
+  }
+
+  .postSource {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    max-width: 100%;
+  }
+
+  /* Long names and handles still end in an ellipsis instead of overflowing. */
+  .postSource > .postFeed,
+  .postSource > .postHandle {
+    max-width: 100%;
+  }
+}
+
+/* Consent overlays covering third-party embeds until the user allows the service. */
+
+.embedGate {
+    position: relative;
+    /* src-less iframes and unhydrated blockquotes can collapse; keep room for the overlay */
+    min-height: 140px;
+}
+
+.embedGateOverlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(20, 20, 20, 0.65);
+    border-radius: 8px;
+    z-index: 1;
+}
+
+.embedGateText {
+    color: #fff;
+    font-size: 14px;
+    line-height: 1.4;
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.embedGateBtn {
+    background: #fff;
+    color: #111;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.embedGateBtn:hover {
+    background: #eee;
+}
+
+/* Offline reading (offline-embeds.ts): stand-ins for embeds and media that need a connection. */
+
+.embedOffline {
+    margin: 16px 0;
+    padding: 12px;
+    border: 1px dashed var(--pv-placeholder-border);
+    border-radius: 6px;
+    text-align: center;
+    font-family: var(--pv-ui-font);
+    font-size: 0.85em;
+    color: var(--pv-text-muted);
+}
+
+.postMedia .embedOffline {
+    margin: 0;
+}
+
+/* Below a blockquote embed that shows only its fallback text. */
+.embedOfflineNote {
+    margin: -8px 0 16px;
+    font-family: var(--pv-ui-font);
+    font-size: 0.8em;
+    font-style: italic;
+    color: var(--pv-text-muted);
+}
+
+.embedOfflineCover .youtubePlayer {
+    cursor: default;
+}
+
+
+/* Comments from a source:comments feed (comments.ts). Bodies are rendered Markdown, so only
+   the plain elements renderMarkdown builds need styling. */
+.commentList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.commentListEmpty {
+  font-size: 14px;
+  color: var(--pv-text-faint);
+}
+
+.comment {
+  min-width: 0;
+}
+
+.commentMeta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: var(--pv-text-muted);
+}
+
+.commentAuthor {
+  font-weight: 600;
+  color: var(--pv-text);
+}
+
+.commentTime {
+  color: var(--pv-text-faint);
+  text-decoration: none;
+}
+
+a.commentTime:hover {
+  text-decoration: underline;
+}
+
+.commentBody {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--pv-text);
+  overflow-wrap: anywhere;
+}
+
+.commentBody > :first-child {
+  margin-top: 0;
+}
+
+.commentBody > :last-child {
+  margin-bottom: 0;
+}
+
+.commentBody p,
+.commentBody ul,
+.commentBody ol,
+.commentBody pre,
+.commentBody blockquote {
+  margin: 0 0 8px 0;
+}
+
+.commentBody h2,
+.commentBody h3,
+.commentBody h4,
+.commentBody h5,
+.commentBody h6 {
+  margin: 12px 0 6px 0;
+  font-size: 15px;
+}
+
+.commentBody a {
+  color: var(--pv-accent);
+}
+
+.commentBody blockquote {
+  padding-left: 12px;
+  border-left: 3px solid var(--pv-accent-40);
+  color: var(--pv-text-quote);
+}
+
+.commentBody code {
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--pv-tint);
+  font-size: 0.9em;
+}
+
+.commentBody pre {
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: var(--pv-tint);
+  overflow-x: auto;
+}
+
+.commentBody pre code {
+  padding: 0;
+  background: none;
+}
+
+.commentBody img {
+  max-width: 100%;
+  height: auto;
+}
+
+
+.commentReplies {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--pv-text-faint);
+}
+
+/* Replies to open: link-styled in the accent color, with a chevron that turns down when open. */
+.commentRepliesButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  /* Right padding: room after the label for a focus ring (the chevron's own inset does that on the left). */
+  padding: 2px 6px 2px 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--pv-accent);
+}
+
+.commentRepliesButton svg {
+  transform: rotate(-90deg);
+  transition: transform 0.2s ease;
+}
+
+.commentRepliesButton[aria-expanded="true"] svg {
+  transform: rotate(0deg);
+}
+
+@media (hover: hover) {
+  .commentRepliesButton:hover {
+    text-decoration: underline;
+  }
+}

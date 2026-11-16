@@ -1,0 +1,1017 @@
+/* Tailwind utilities inside post bodies.
+ *
+ * Feeds increasingly ship their site's Tailwind markup verbatim (Mashable's shop cards are a
+ * typical example). The sanitizer keeps a subset of those classes and drops the rest — the
+ * allowlist and the reasoning live in TAILWIND_TEXT_CLASSES / TAILWIND_LAYOUT_CLASSES
+ * (shared/src/utils/sanitize.ts); this file is their implementation. Keep the two in sync: a
+ * class kept there but missing here renders unstyled, which is exactly what we're fixing, and
+ * the sanitizer test fails on any selector here that it would strip.
+ *
+ * This file holds the base utilities. Their `sm:`/`md:`/`lg:` variants live in
+ * post-tailwind-responsive.css, generated from this file by bin/gen-post-tailwind-responsive.mjs —
+ * rerun it after every change here. They are container queries on `.postBody` rather than media
+ * queries: `md:flex` was written for a content column at least 768px wide, which a post column
+ * may or may not be regardless of the window size. State variants (`hover:`, `group-hover:`)
+ * are not supported.
+ *
+ * Every post body postviewer renders is a `.postBody`, so that single scope covers all
+ * sites using it. Two-class selectors also outrank the element rules in postviewer.css and
+ * page-level overrides (`.postBody h2`, `.postBody code`, …), which is what an explicit utility
+ * class should do.
+ *
+ * Sizes and spacing are in `em`, not Tailwind's `rem`: the reader's body size is the user's
+ * own font size preference (--pv-font-size), and a feed's `text-2xl` should stay proportional to it
+ * rather than lock itself to the browser default. The cost is that nesting compounds
+ * (`text-sm` inside `text-sm`), which is rare and harmless.
+ */
+
+/* ── Font size ───────────────────────────────────────────────────────────
+   Tailwind pairs each step with a line-height. We keep the body's own (1.7) up to
+   text-lg, where it reads better than Tailwind's tighter default, and take over from
+   text-xl up, where 1.7 on display-sized text looks unmoored. An explicit leading-*
+   class still wins: those rules have equal specificity and come later in this file. */
+.postBody .text-xs   { font-size: 0.75em; }
+.postBody .text-sm   { font-size: 0.875em; }
+.postBody .text-base { font-size: 1em; }
+.postBody .text-lg   { font-size: 1.125em; }
+.postBody .text-xl   { font-size: 1.25em;  line-height: 1.4; }
+.postBody .text-2xl  { font-size: 1.5em;   line-height: 1.35; }
+.postBody .text-3xl  { font-size: 1.875em; line-height: 1.25; }
+.postBody .text-4xl  { font-size: 2.25em;  line-height: 1.2; }
+.postBody .text-5xl  { font-size: 3em;     line-height: 1.1; }
+.postBody .text-6xl  { font-size: 3.75em;  line-height: 1.05; }
+.postBody .text-7xl  { font-size: 4.5em;   line-height: 1; }
+.postBody .text-8xl  { font-size: 6em;     line-height: 1; }
+.postBody .text-9xl  { font-size: 8em;     line-height: 1; }
+
+/* ── Font weight ─────────────────────────────────────────────────────── */
+.postBody .font-thin       { font-weight: 100; }
+.postBody .font-extralight { font-weight: 200; }
+.postBody .font-light      { font-weight: 300; }
+.postBody .font-normal     { font-weight: 400; }
+.postBody .font-medium     { font-weight: 500; }
+.postBody .font-semibold   { font-weight: 600; }
+.postBody .font-bold       { font-weight: 700; }
+.postBody .font-extrabold  { font-weight: 800; }
+.postBody .font-black      { font-weight: 900; }
+
+/* ── Font family ─────────────────────────────────────────────────────────
+   Mapped to the reader's own stacks, not the publisher's: the post is being read in
+   our typography, and a feed asking for "sans" means "not the body serif". */
+.postBody .font-sans  { font-family: var(--font-sans); }
+.postBody .font-serif { font-family: 'Source Serif 4 Variable', Georgia, 'Times New Roman', serif; }
+.postBody .font-mono  { font-family: 'Monaco', 'Courier New', monospace; }
+
+/* ── Font style ──────────────────────────────────────────────────────── */
+.postBody .italic     { font-style: italic; }
+.postBody .not-italic { font-style: normal; }
+
+/* ── Text decoration ─────────────────────────────────────────────────── */
+.postBody .underline    { text-decoration: underline; }
+.postBody .overline     { text-decoration: overline; }
+.postBody .line-through { text-decoration: line-through; }
+.postBody .no-underline { text-decoration: none; }
+
+/* ── Text transform ──────────────────────────────────────────────────── */
+.postBody .uppercase   { text-transform: uppercase; }
+.postBody .lowercase   { text-transform: lowercase; }
+.postBody .capitalize  { text-transform: capitalize; }
+.postBody .normal-case { text-transform: none; }
+
+/* ── Line height ─────────────────────────────────────────────────────────
+   The numeric steps are Tailwind's N * 0.25rem, in em for the same reason as the sizes. */
+.postBody .leading-none    { line-height: 1; }
+.postBody .leading-tight   { line-height: 1.25; }
+.postBody .leading-snug    { line-height: 1.375; }
+.postBody .leading-normal  { line-height: 1.5; }
+.postBody .leading-relaxed { line-height: 1.625; }
+.postBody .leading-loose   { line-height: 2; }
+.postBody .leading-3  { line-height: 0.75em; }
+.postBody .leading-4  { line-height: 1em; }
+.postBody .leading-5  { line-height: 1.25em; }
+.postBody .leading-6  { line-height: 1.5em; }
+.postBody .leading-7  { line-height: 1.75em; }
+.postBody .leading-8  { line-height: 2em; }
+.postBody .leading-9  { line-height: 2.25em; }
+.postBody .leading-10 { line-height: 2.5em; }
+
+/* ── Letter spacing ──────────────────────────────────────────────────── */
+.postBody .tracking-tighter { letter-spacing: -0.05em; }
+.postBody .tracking-tight   { letter-spacing: -0.025em; }
+.postBody .tracking-normal  { letter-spacing: 0; }
+.postBody .tracking-wide    { letter-spacing: 0.025em; }
+.postBody .tracking-wider   { letter-spacing: 0.05em; }
+.postBody .tracking-widest  { letter-spacing: 0.1em; }
+
+/* ── Text alignment and wrapping ─────────────────────────────────────── */
+.postBody .text-left    { text-align: left; }
+.postBody .text-center  { text-align: center; }
+.postBody .text-right   { text-align: right; }
+.postBody .text-justify { text-align: justify; }
+.postBody .text-start   { text-align: start; }
+.postBody .text-end     { text-align: end; }
+.postBody .text-balance { text-wrap: balance; }
+.postBody .text-pretty  { text-wrap: pretty; }
+
+
+/* ====================================================================
+   LAYOUT
+   The blocks below are mechanical: one rule per utility, values straight from Tailwind's
+   default theme. The section headers say what is deliberately absent.
+   ==================================================================== */
+
+/* ── Display ───────────────────────────────────────────────────────────
+   `hidden` is deliberately missing: `hidden md:block` is how a mobile-first site says
+   "desktop only", and since we never apply the md: half it would swallow real content.
+   */
+.postBody .block { display: block; }
+.postBody .inline-block { display: inline-block; }
+.postBody .inline { display: inline; }
+.postBody .flex { display: flex; }
+.postBody .inline-flex { display: inline-flex; }
+.postBody .grid { display: grid; }
+.postBody .inline-grid { display: inline-grid; }
+.postBody .flow-root { display: flow-root; }
+
+/* ── Visibility ────────────────────────────────────────────────────────
+   `invisible` keeps the box and is how tooltips/overlays hide themselves (it is almost never
+   the only copy of real text), so unlike `hidden` it is safe to honour.
+   */
+.postBody .visible { visibility: visible; }
+.postBody .invisible { visibility: hidden; }
+
+/* ── Position ──────────────────────────────────────────────────────────
+   `fixed` and `sticky` would escape the post and float over the app's own chrome, so only the
+   in-flow three exist. `.postBody` is made a containing block below, which keeps every absolute
+   box inside the post it came from.
+   */
+.postBody .static { position: static; }
+.postBody .relative { position: relative; }
+.postBody .absolute { position: absolute; }
+
+.postBody {
+  position: relative;
+  container: post-body / inline-size;
+}
+
+/* Out-of-flow boxes never want the reader's own image/flow margins (postviewer.css gives every
+   feed image 16px), which would push an `inset-0` overlay out of the box it was inset into.
+   Explicit m-* classes come later in this file and still win. */
+.postBody .absolute {
+  margin: 0;
+}
+
+/* A decorative absolute box — an accent bar, a gradient scrim — is usually empty and usually
+   coloured by a class we dropped, leaving an invisible sheet that would still swallow clicks
+   on the text underneath. Empty means decorative, so let the pointer through. Replaced
+   elements are excluded: an <img> has no children, so it is always :empty, and a product shot
+   positioned into its frame must stay clickable and zoomable. */
+.postBody .absolute:empty:not(img, picture, iframe, video, audio, source) {
+  pointer-events: none;
+}
+
+/* ── Inset ───────────────────────────────────────────────────────────── */
+.postBody .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+.postBody .inset-px { top: 1px; right: 1px; bottom: 1px; left: 1px; }
+.postBody .inset-1 { top: 0.25rem; right: 0.25rem; bottom: 0.25rem; left: 0.25rem; }
+.postBody .inset-2 { top: 0.5rem; right: 0.5rem; bottom: 0.5rem; left: 0.5rem; }
+.postBody .inset-3 { top: 0.75rem; right: 0.75rem; bottom: 0.75rem; left: 0.75rem; }
+.postBody .inset-4 { top: 1rem; right: 1rem; bottom: 1rem; left: 1rem; }
+.postBody .inset-5 { top: 1.25rem; right: 1.25rem; bottom: 1.25rem; left: 1.25rem; }
+.postBody .inset-6 { top: 1.5rem; right: 1.5rem; bottom: 1.5rem; left: 1.5rem; }
+.postBody .inset-8 { top: 2rem; right: 2rem; bottom: 2rem; left: 2rem; }
+.postBody .inset-auto { top: auto; right: auto; bottom: auto; left: auto; }
+.postBody .inset-full { top: 100%; right: 100%; bottom: 100%; left: 100%; }
+.postBody .inset-x-0 { left: 0; right: 0; }
+.postBody .inset-x-px { left: 1px; right: 1px; }
+.postBody .inset-x-1 { left: 0.25rem; right: 0.25rem; }
+.postBody .inset-x-2 { left: 0.5rem; right: 0.5rem; }
+.postBody .inset-x-3 { left: 0.75rem; right: 0.75rem; }
+.postBody .inset-x-4 { left: 1rem; right: 1rem; }
+.postBody .inset-x-5 { left: 1.25rem; right: 1.25rem; }
+.postBody .inset-x-6 { left: 1.5rem; right: 1.5rem; }
+.postBody .inset-x-8 { left: 2rem; right: 2rem; }
+.postBody .inset-x-auto { left: auto; right: auto; }
+.postBody .inset-x-full { left: 100%; right: 100%; }
+.postBody .inset-y-0 { top: 0; bottom: 0; }
+.postBody .inset-y-px { top: 1px; bottom: 1px; }
+.postBody .inset-y-1 { top: 0.25rem; bottom: 0.25rem; }
+.postBody .inset-y-2 { top: 0.5rem; bottom: 0.5rem; }
+.postBody .inset-y-3 { top: 0.75rem; bottom: 0.75rem; }
+.postBody .inset-y-4 { top: 1rem; bottom: 1rem; }
+.postBody .inset-y-5 { top: 1.25rem; bottom: 1.25rem; }
+.postBody .inset-y-6 { top: 1.5rem; bottom: 1.5rem; }
+.postBody .inset-y-8 { top: 2rem; bottom: 2rem; }
+.postBody .inset-y-auto { top: auto; bottom: auto; }
+.postBody .inset-y-full { top: 100%; bottom: 100%; }
+.postBody .top-0 { top: 0; }
+.postBody .top-px { top: 1px; }
+.postBody .top-1 { top: 0.25rem; }
+.postBody .top-2 { top: 0.5rem; }
+.postBody .top-3 { top: 0.75rem; }
+.postBody .top-4 { top: 1rem; }
+.postBody .top-5 { top: 1.25rem; }
+.postBody .top-6 { top: 1.5rem; }
+.postBody .top-8 { top: 2rem; }
+.postBody .top-auto { top: auto; }
+.postBody .top-full { top: 100%; }
+.postBody .right-0 { right: 0; }
+.postBody .right-px { right: 1px; }
+.postBody .right-1 { right: 0.25rem; }
+.postBody .right-2 { right: 0.5rem; }
+.postBody .right-3 { right: 0.75rem; }
+.postBody .right-4 { right: 1rem; }
+.postBody .right-5 { right: 1.25rem; }
+.postBody .right-6 { right: 1.5rem; }
+.postBody .right-8 { right: 2rem; }
+.postBody .right-auto { right: auto; }
+.postBody .right-full { right: 100%; }
+.postBody .bottom-0 { bottom: 0; }
+.postBody .bottom-px { bottom: 1px; }
+.postBody .bottom-1 { bottom: 0.25rem; }
+.postBody .bottom-2 { bottom: 0.5rem; }
+.postBody .bottom-3 { bottom: 0.75rem; }
+.postBody .bottom-4 { bottom: 1rem; }
+.postBody .bottom-5 { bottom: 1.25rem; }
+.postBody .bottom-6 { bottom: 1.5rem; }
+.postBody .bottom-8 { bottom: 2rem; }
+.postBody .bottom-auto { bottom: auto; }
+.postBody .bottom-full { bottom: 100%; }
+.postBody .left-0 { left: 0; }
+.postBody .left-px { left: 1px; }
+.postBody .left-1 { left: 0.25rem; }
+.postBody .left-2 { left: 0.5rem; }
+.postBody .left-3 { left: 0.75rem; }
+.postBody .left-4 { left: 1rem; }
+.postBody .left-5 { left: 1.25rem; }
+.postBody .left-6 { left: 1.5rem; }
+.postBody .left-8 { left: 2rem; }
+.postBody .left-auto { left: auto; }
+.postBody .left-full { left: 100%; }
+
+/* ── Flex ────────────────────────────────────────────────────────────── */
+.postBody .flex-row { flex-direction: row; }
+.postBody .flex-row-reverse { flex-direction: row-reverse; }
+.postBody .flex-col { flex-direction: column; }
+.postBody .flex-col-reverse { flex-direction: column-reverse; }
+.postBody .flex-wrap { flex-wrap: wrap; }
+.postBody .flex-wrap-reverse { flex-wrap: wrap-reverse; }
+.postBody .flex-nowrap { flex-wrap: nowrap; }
+.postBody .flex-1 { flex: 1 1 0%; }
+.postBody .flex-auto { flex: 1 1 auto; }
+.postBody .flex-initial { flex: 0 1 auto; }
+.postBody .flex-none { flex: none; }
+.postBody .grow { flex-grow: 1; }
+.postBody .grow-0 { flex-grow: 0; }
+.postBody .shrink { flex-shrink: 1; }
+.postBody .shrink-0 { flex-shrink: 0; }
+.postBody .basis-0 { flex-basis: 0px; }
+.postBody .basis-auto { flex-basis: auto; }
+.postBody .basis-full { flex-basis: 100%; }
+
+/* ── Box alignment ───────────────────────────────────────────────────── */
+.postBody .items-start { align-items: flex-start; }
+.postBody .items-end { align-items: flex-end; }
+.postBody .items-center { align-items: center; }
+.postBody .items-baseline { align-items: baseline; }
+.postBody .items-stretch { align-items: stretch; }
+.postBody .justify-normal { justify-content: normal; }
+.postBody .justify-start { justify-content: flex-start; }
+.postBody .justify-end { justify-content: flex-end; }
+.postBody .justify-center { justify-content: center; }
+.postBody .justify-between { justify-content: space-between; }
+.postBody .justify-around { justify-content: space-around; }
+.postBody .justify-evenly { justify-content: space-evenly; }
+.postBody .justify-stretch { justify-content: stretch; }
+.postBody .self-auto { align-self: auto; }
+.postBody .self-start { align-self: flex-start; }
+.postBody .self-end { align-self: flex-end; }
+.postBody .self-center { align-self: center; }
+.postBody .self-stretch { align-self: stretch; }
+.postBody .self-baseline { align-self: baseline; }
+.postBody .content-normal { align-content: normal; }
+.postBody .content-start { align-content: flex-start; }
+.postBody .content-end { align-content: flex-end; }
+.postBody .content-center { align-content: center; }
+.postBody .content-between { align-content: space-between; }
+.postBody .content-around { align-content: space-around; }
+.postBody .content-evenly { align-content: space-evenly; }
+
+/* ── Grid ────────────────────────────────────────────────────────────── */
+.postBody .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.postBody .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.postBody .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.postBody .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.postBody .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.postBody .grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.postBody .grid-cols-none { grid-template-columns: none; }
+.postBody .col-span-1 { grid-column: span 1 / span 1; }
+.postBody .col-span-2 { grid-column: span 2 / span 2; }
+.postBody .col-span-3 { grid-column: span 3 / span 3; }
+.postBody .col-span-4 { grid-column: span 4 / span 4; }
+.postBody .col-span-5 { grid-column: span 5 / span 5; }
+.postBody .col-span-6 { grid-column: span 6 / span 6; }
+.postBody .col-span-full { grid-column: 1 / -1; }
+.postBody .grid-flow-row { grid-auto-flow: row; }
+.postBody .grid-flow-col { grid-auto-flow: column; }
+
+/* ── Order ───────────────────────────────────────────────────────────── */
+.postBody .order-1 { order: 1; }
+.postBody .order-2 { order: 2; }
+.postBody .order-3 { order: 3; }
+.postBody .order-4 { order: 4; }
+.postBody .order-5 { order: 5; }
+.postBody .order-6 { order: 6; }
+.postBody .order-7 { order: 7; }
+.postBody .order-8 { order: 8; }
+.postBody .order-9 { order: 9; }
+.postBody .order-10 { order: 10; }
+.postBody .order-11 { order: 11; }
+.postBody .order-12 { order: 12; }
+.postBody .order-first { order: -9999; }
+.postBody .order-last { order: 9999; }
+.postBody .order-none { order: 0; }
+
+/* ── Width ─────────────────────────────────────────────────────────────
+   The numeric scale is Tailwind's N * 0.25rem. Unlike the type scale these are rem, not em:
+   a box is a box, and should not double in size because the reader picked a larger font.
+
+   Tailwind's preflight makes every box border-box, and its markup counts on that: a
+   `w-full px-5` button is exactly as wide as its column. Our boxes are content-box, so do the
+   same for anything that looks sized (a false hit like `flow-root` is harmless, box-sizing
+   changes nothing on a box without a size). :where keeps this below every utility.
+   */
+.postBody :where([class*="w-"], [class*="h-"], [class*="basis-"]) {
+  box-sizing: border-box;
+}
+
+.postBody .w-0 { width: 0; }
+.postBody .w-px { width: 1px; }
+.postBody .w-0\.5 { width: 0.125rem; }
+.postBody .w-1 { width: 0.25rem; }
+.postBody .w-1\.5 { width: 0.375rem; }
+.postBody .w-2 { width: 0.5rem; }
+.postBody .w-2\.5 { width: 0.625rem; }
+.postBody .w-3 { width: 0.75rem; }
+.postBody .w-3\.5 { width: 0.875rem; }
+.postBody .w-4 { width: 1rem; }
+.postBody .w-5 { width: 1.25rem; }
+.postBody .w-6 { width: 1.5rem; }
+.postBody .w-8 { width: 2rem; }
+.postBody .w-10 { width: 2.5rem; }
+.postBody .w-12 { width: 3rem; }
+.postBody .w-14 { width: 3.5rem; }
+.postBody .w-16 { width: 4rem; }
+.postBody .w-20 { width: 5rem; }
+.postBody .w-24 { width: 6rem; }
+.postBody .w-1\/2 { width: 50%; }
+.postBody .w-1\/3 { width: 33.333333%; }
+.postBody .w-2\/3 { width: 66.666667%; }
+.postBody .w-1\/4 { width: 25%; }
+.postBody .w-2\/4 { width: 50%; }
+.postBody .w-3\/4 { width: 75%; }
+.postBody .w-1\/5 { width: 20%; }
+.postBody .w-2\/5 { width: 40%; }
+.postBody .w-3\/5 { width: 60%; }
+.postBody .w-4\/5 { width: 80%; }
+.postBody .w-1\/6 { width: 16.666667%; }
+.postBody .w-5\/6 { width: 83.333333%; }
+.postBody .w-auto { width: auto; }
+.postBody .w-full { width: 100%; }
+.postBody .w-fit { width: fit-content; }
+.postBody .w-min { width: min-content; }
+.postBody .w-max { width: max-content; }
+
+/* ── Height ──────────────────────────────────────────────────────────── */
+.postBody .h-0 { height: 0; }
+.postBody .h-px { height: 1px; }
+.postBody .h-0\.5 { height: 0.125rem; }
+.postBody .h-1 { height: 0.25rem; }
+.postBody .h-1\.5 { height: 0.375rem; }
+.postBody .h-2 { height: 0.5rem; }
+.postBody .h-2\.5 { height: 0.625rem; }
+.postBody .h-3 { height: 0.75rem; }
+.postBody .h-3\.5 { height: 0.875rem; }
+.postBody .h-4 { height: 1rem; }
+.postBody .h-5 { height: 1.25rem; }
+.postBody .h-6 { height: 1.5rem; }
+.postBody .h-8 { height: 2rem; }
+.postBody .h-10 { height: 2.5rem; }
+.postBody .h-12 { height: 3rem; }
+.postBody .h-14 { height: 3.5rem; }
+.postBody .h-16 { height: 4rem; }
+.postBody .h-20 { height: 5rem; }
+.postBody .h-24 { height: 6rem; }
+.postBody .h-auto { height: auto; }
+.postBody .h-full { height: 100%; }
+.postBody .h-fit { height: fit-content; }
+.postBody .h-min { height: min-content; }
+.postBody .h-max { height: max-content; }
+
+/* postviewer.css forces `height: auto !important` on feed images, because feeds ship broken
+   height attributes. A height utility is an explicit statement about the box, so for images it
+   has to be able to win — an `absolute inset-0 w-full h-full` product shot needs its height. */
+.postBody img.h-0 { height: 0 !important; }
+.postBody img.h-px { height: 1px !important; }
+.postBody img.h-0\.5 { height: 0.125rem !important; }
+.postBody img.h-1 { height: 0.25rem !important; }
+.postBody img.h-1\.5 { height: 0.375rem !important; }
+.postBody img.h-2 { height: 0.5rem !important; }
+.postBody img.h-2\.5 { height: 0.625rem !important; }
+.postBody img.h-3 { height: 0.75rem !important; }
+.postBody img.h-3\.5 { height: 0.875rem !important; }
+.postBody img.h-4 { height: 1rem !important; }
+.postBody img.h-5 { height: 1.25rem !important; }
+.postBody img.h-6 { height: 1.5rem !important; }
+.postBody img.h-8 { height: 2rem !important; }
+.postBody img.h-10 { height: 2.5rem !important; }
+.postBody img.h-12 { height: 3rem !important; }
+.postBody img.h-14 { height: 3.5rem !important; }
+.postBody img.h-16 { height: 4rem !important; }
+.postBody img.h-20 { height: 5rem !important; }
+.postBody img.h-24 { height: 6rem !important; }
+.postBody img.h-auto { height: auto !important; }
+.postBody img.h-full { height: 100% !important; }
+.postBody img.h-fit { height: fit-content !important; }
+.postBody img.h-min { height: min-content !important; }
+.postBody img.h-max { height: max-content !important; }
+
+/* ── Min / max size ────────────────────────────────────────────────────
+   Only the constraining ones: nothing here can make a box wider than the reader column.
+   */
+.postBody .min-w-0 { min-width: 0px; }
+.postBody .min-w-full { min-width: 100%; }
+.postBody .min-w-fit { min-width: fit-content; }
+.postBody .min-h-0 { min-height: 0px; }
+.postBody .min-h-full { min-height: 100%; }
+.postBody .min-h-fit { min-height: fit-content; }
+.postBody .max-w-none { max-width: none; }
+.postBody .max-w-full { max-width: 100%; }
+.postBody .max-w-fit { max-width: fit-content; }
+.postBody .max-w-xs { max-width: 20rem; }
+.postBody .max-w-sm { max-width: 24rem; }
+.postBody .max-w-md { max-width: 28rem; }
+.postBody .max-w-lg { max-width: 32rem; }
+.postBody .max-w-xl { max-width: 36rem; }
+.postBody .max-w-2xl { max-width: 42rem; }
+.postBody .max-w-prose { max-width: 65ch; }
+.postBody .max-h-0 { max-height: 0; }
+.postBody .max-h-px { max-height: 1px; }
+.postBody .max-h-0\.5 { max-height: 0.125rem; }
+.postBody .max-h-1 { max-height: 0.25rem; }
+.postBody .max-h-1\.5 { max-height: 0.375rem; }
+.postBody .max-h-2 { max-height: 0.5rem; }
+.postBody .max-h-2\.5 { max-height: 0.625rem; }
+.postBody .max-h-3 { max-height: 0.75rem; }
+.postBody .max-h-3\.5 { max-height: 0.875rem; }
+.postBody .max-h-4 { max-height: 1rem; }
+.postBody .max-h-5 { max-height: 1.25rem; }
+.postBody .max-h-6 { max-height: 1.5rem; }
+.postBody .max-h-8 { max-height: 2rem; }
+.postBody .max-h-10 { max-height: 2.5rem; }
+.postBody .max-h-12 { max-height: 3rem; }
+.postBody .max-h-14 { max-height: 3.5rem; }
+.postBody .max-h-16 { max-height: 4rem; }
+.postBody .max-h-20 { max-height: 5rem; }
+.postBody .max-h-24 { max-height: 6rem; }
+.postBody .max-h-28 { max-height: 7rem; }
+.postBody .max-h-32 { max-height: 8rem; }
+.postBody .max-h-36 { max-height: 9rem; }
+.postBody .max-h-40 { max-height: 10rem; }
+.postBody .max-h-44 { max-height: 11rem; }
+.postBody .max-h-48 { max-height: 12rem; }
+.postBody .max-h-52 { max-height: 13rem; }
+.postBody .max-h-56 { max-height: 14rem; }
+.postBody .max-h-60 { max-height: 15rem; }
+.postBody .max-h-64 { max-height: 16rem; }
+.postBody .max-h-72 { max-height: 18rem; }
+.postBody .max-h-80 { max-height: 20rem; }
+.postBody .max-h-96 { max-height: 24rem; }
+.postBody .max-h-none { max-height: none; }
+.postBody .max-h-full { max-height: 100%; }
+.postBody .max-h-fit { max-height: fit-content; }
+
+/* ── Horizontal rules ──────────────────────────────────────────────────
+   A divider is as wide as its column. That is what a block <hr> does anyway, but in a flex
+   column (`flex flex-col`, Mashable's shop lists) Tailwind's `mx-auto` turns the auto width
+   into shrink-to-fit, and an empty rule shrinks to a dot. A `w-*` class still wins. */
+.postBody hr {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* ── Aspect ratio ──────────────────────────────────────────────────────
+   A square box at the full column width is as tall as the column is wide — on a publisher's
+   page that is a half-width product shot, here it is a screenful of mostly padding. Cap it;
+   the box goes wide-rectangular and the `object-contain` image inside it simply letterboxes.
+   aspect-video is already below the cap at any reader width. */
+.postBody .aspect-auto { aspect-ratio: auto; }
+.postBody .aspect-square { aspect-ratio: 1 / 1; max-height: 420px; }
+.postBody .aspect-video { aspect-ratio: 16 / 9; }
+
+/* ── Object fit and position ─────────────────────────────────────────── */
+.postBody .object-contain { object-fit: contain; }
+.postBody .object-cover { object-fit: cover; }
+.postBody .object-fill { object-fit: fill; }
+.postBody .object-none { object-fit: none; }
+.postBody .object-scale-down { object-fit: scale-down; }
+.postBody .object-bottom { object-position: bottom; }
+.postBody .object-center { object-position: center; }
+.postBody .object-left { object-position: left; }
+.postBody .object-right { object-position: right; }
+.postBody .object-top { object-position: top; }
+
+/* ── Overflow ────────────────────────────────────────────────────────── */
+.postBody .overflow-auto { overflow: auto; }
+.postBody .overflow-hidden { overflow: hidden; }
+.postBody .overflow-clip { overflow: clip; }
+.postBody .overflow-visible { overflow: visible; }
+.postBody .overflow-scroll { overflow: scroll; }
+.postBody .overflow-x-auto { overflow-x: auto; }
+.postBody .overflow-x-hidden { overflow-x: hidden; }
+.postBody .overflow-x-clip { overflow-x: clip; }
+.postBody .overflow-x-visible { overflow-x: visible; }
+.postBody .overflow-x-scroll { overflow-x: scroll; }
+.postBody .overflow-y-auto { overflow-y: auto; }
+.postBody .overflow-y-hidden { overflow-y: hidden; }
+.postBody .overflow-y-clip { overflow-y: clip; }
+.postBody .overflow-y-visible { overflow-y: visible; }
+.postBody .overflow-y-scroll { overflow-y: scroll; }
+
+/* ── Borders ───────────────────────────────────────────────────────────
+   Tailwind's border-color classes are colours, so they are dropped with the rest of the
+   palette; a bare currentColor border would be a hard black rule where the site drew a hairline.
+   Default to a muted fraction of the text colour, which reads the same in both themes.
+   */
+
+.postBody :is(.border, .border-0, .border-2, .border-4, .border-8,
+     .border-x, .border-x-0, .border-x-2, .border-x-4, .border-x-8,
+     .border-y, .border-y-0, .border-y-2, .border-y-4, .border-y-8,
+     .border-t, .border-t-0, .border-t-2, .border-t-4, .border-t-8,
+     .border-r, .border-r-0, .border-r-2, .border-r-4, .border-r-8,
+     .border-b, .border-b-0, .border-b-2, .border-b-4, .border-b-8,
+     .border-l, .border-l-0, .border-l-2, .border-l-4, .border-l-8) {
+  border-style: solid;
+  border-color: color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.postBody .border { border-width: 1px; }
+.postBody .border-0 { border-width: 0; }
+.postBody .border-2 { border-width: 2px; }
+.postBody .border-4 { border-width: 4px; }
+.postBody .border-8 { border-width: 8px; }
+.postBody .border-x { border-left-width: 1px; border-right-width: 1px; }
+.postBody .border-x-0 { border-left-width: 0; border-right-width: 0; }
+.postBody .border-x-2 { border-left-width: 2px; border-right-width: 2px; }
+.postBody .border-x-4 { border-left-width: 4px; border-right-width: 4px; }
+.postBody .border-x-8 { border-left-width: 8px; border-right-width: 8px; }
+.postBody .border-y { border-top-width: 1px; border-bottom-width: 1px; }
+.postBody .border-y-0 { border-top-width: 0; border-bottom-width: 0; }
+.postBody .border-y-2 { border-top-width: 2px; border-bottom-width: 2px; }
+.postBody .border-y-4 { border-top-width: 4px; border-bottom-width: 4px; }
+.postBody .border-y-8 { border-top-width: 8px; border-bottom-width: 8px; }
+.postBody .border-t { border-top-width: 1px; }
+.postBody .border-t-0 { border-top-width: 0; }
+.postBody .border-t-2 { border-top-width: 2px; }
+.postBody .border-t-4 { border-top-width: 4px; }
+.postBody .border-t-8 { border-top-width: 8px; }
+.postBody .border-r { border-right-width: 1px; }
+.postBody .border-r-0 { border-right-width: 0; }
+.postBody .border-r-2 { border-right-width: 2px; }
+.postBody .border-r-4 { border-right-width: 4px; }
+.postBody .border-r-8 { border-right-width: 8px; }
+.postBody .border-b { border-bottom-width: 1px; }
+.postBody .border-b-0 { border-bottom-width: 0; }
+.postBody .border-b-2 { border-bottom-width: 2px; }
+.postBody .border-b-4 { border-bottom-width: 4px; }
+.postBody .border-b-8 { border-bottom-width: 8px; }
+.postBody .border-l { border-left-width: 1px; }
+.postBody .border-l-0 { border-left-width: 0; }
+.postBody .border-l-2 { border-left-width: 2px; }
+.postBody .border-l-4 { border-left-width: 4px; }
+.postBody .border-l-8 { border-left-width: 8px; }
+.postBody .border-solid { border-style: solid; }
+.postBody .border-dashed { border-style: dashed; }
+.postBody .border-dotted { border-style: dotted; }
+.postBody .border-double { border-style: double; }
+.postBody .border-none { border-style: none; }
+
+/* ── Border radius ───────────────────────────────────────────────────── */
+.postBody .rounded-none { border-radius: 0; }
+.postBody .rounded-sm { border-radius: 0.125rem; }
+.postBody .rounded { border-radius: 0.25rem; }
+.postBody .rounded-md { border-radius: 0.375rem; }
+.postBody .rounded-lg { border-radius: 0.5rem; }
+.postBody .rounded-xl { border-radius: 0.75rem; }
+.postBody .rounded-2xl { border-radius: 1rem; }
+.postBody .rounded-3xl { border-radius: 1.5rem; }
+.postBody .rounded-full { border-radius: 9999px; }
+
+/* ── Float, clear and vertical alignment ─────────────────────────────── */
+.postBody .float-left { float: left; }
+.postBody .float-right { float: right; }
+.postBody .float-none { float: none; }
+.postBody .float-start { float: inline-start; }
+.postBody .float-end { float: inline-end; }
+.postBody .clear-left { clear: left; }
+.postBody .clear-right { clear: right; }
+.postBody .clear-both { clear: both; }
+.postBody .clear-none { clear: none; }
+.postBody .align-baseline { vertical-align: baseline; }
+.postBody .align-top { vertical-align: top; }
+.postBody .align-middle { vertical-align: middle; }
+.postBody .align-bottom { vertical-align: bottom; }
+.postBody .align-text-top { vertical-align: text-top; }
+.postBody .align-text-bottom { vertical-align: text-bottom; }
+
+/* ── Lists ───────────────────────────────────────────────────────────── */
+.postBody .list-none { list-style-type: none; }
+.postBody .list-disc { list-style-type: disc; }
+.postBody .list-decimal { list-style-type: decimal; }
+.postBody .list-inside { list-style-position: inside; }
+.postBody .list-outside { list-style-position: outside; }
+
+/* ── Whitespace and word breaking ──────────────────────────────────────
+   `whitespace-pre` and `break-spaces` are missing on purpose: preformatted text at a
+   publisher's column width overflows ours with no way to scroll it.
+   */
+.postBody .whitespace-normal { white-space: normal; }
+.postBody .whitespace-nowrap { white-space: nowrap; }
+.postBody .whitespace-pre-line { white-space: pre-line; }
+.postBody .whitespace-pre-wrap { white-space: pre-wrap; }
+.postBody .break-normal { overflow-wrap: normal; word-break: normal; }
+.postBody .break-words { overflow-wrap: break-word; }
+.postBody .break-all { word-break: break-all; }
+.postBody .break-keep { word-break: keep-all; }
+
+/* ── Margin ────────────────────────────────────────────────────────────
+   Negative margins (`-mt-4`) are not supported: they exist to pull an element out of its
+   container, which in a reader means over our own chrome.
+   */
+.postBody .m-0 { margin: 0; }
+.postBody .m-px { margin: 1px; }
+.postBody .m-0\.5 { margin: 0.125rem; }
+.postBody .m-1 { margin: 0.25rem; }
+.postBody .m-1\.5 { margin: 0.375rem; }
+.postBody .m-2 { margin: 0.5rem; }
+.postBody .m-2\.5 { margin: 0.625rem; }
+.postBody .m-3 { margin: 0.75rem; }
+.postBody .m-3\.5 { margin: 0.875rem; }
+.postBody .m-4 { margin: 1rem; }
+.postBody .m-5 { margin: 1.25rem; }
+.postBody .m-6 { margin: 1.5rem; }
+.postBody .m-8 { margin: 2rem; }
+.postBody .m-10 { margin: 2.5rem; }
+.postBody .m-12 { margin: 3rem; }
+.postBody .m-14 { margin: 3.5rem; }
+.postBody .m-16 { margin: 4rem; }
+.postBody .m-20 { margin: 5rem; }
+.postBody .m-24 { margin: 6rem; }
+.postBody .m-auto { margin: auto; }
+.postBody .mx-0 { margin-left: 0; margin-right: 0; }
+.postBody .mx-px { margin-left: 1px; margin-right: 1px; }
+.postBody .mx-0\.5 { margin-left: 0.125rem; margin-right: 0.125rem; }
+.postBody .mx-1 { margin-left: 0.25rem; margin-right: 0.25rem; }
+.postBody .mx-1\.5 { margin-left: 0.375rem; margin-right: 0.375rem; }
+.postBody .mx-2 { margin-left: 0.5rem; margin-right: 0.5rem; }
+.postBody .mx-2\.5 { margin-left: 0.625rem; margin-right: 0.625rem; }
+.postBody .mx-3 { margin-left: 0.75rem; margin-right: 0.75rem; }
+.postBody .mx-3\.5 { margin-left: 0.875rem; margin-right: 0.875rem; }
+.postBody .mx-4 { margin-left: 1rem; margin-right: 1rem; }
+.postBody .mx-5 { margin-left: 1.25rem; margin-right: 1.25rem; }
+.postBody .mx-6 { margin-left: 1.5rem; margin-right: 1.5rem; }
+.postBody .mx-8 { margin-left: 2rem; margin-right: 2rem; }
+.postBody .mx-10 { margin-left: 2.5rem; margin-right: 2.5rem; }
+.postBody .mx-12 { margin-left: 3rem; margin-right: 3rem; }
+.postBody .mx-14 { margin-left: 3.5rem; margin-right: 3.5rem; }
+.postBody .mx-16 { margin-left: 4rem; margin-right: 4rem; }
+.postBody .mx-20 { margin-left: 5rem; margin-right: 5rem; }
+.postBody .mx-24 { margin-left: 6rem; margin-right: 6rem; }
+.postBody .mx-auto { margin-left: auto; margin-right: auto; }
+.postBody .my-0 { margin-top: 0; margin-bottom: 0; }
+.postBody .my-px { margin-top: 1px; margin-bottom: 1px; }
+.postBody .my-0\.5 { margin-top: 0.125rem; margin-bottom: 0.125rem; }
+.postBody .my-1 { margin-top: 0.25rem; margin-bottom: 0.25rem; }
+.postBody .my-1\.5 { margin-top: 0.375rem; margin-bottom: 0.375rem; }
+.postBody .my-2 { margin-top: 0.5rem; margin-bottom: 0.5rem; }
+.postBody .my-2\.5 { margin-top: 0.625rem; margin-bottom: 0.625rem; }
+.postBody .my-3 { margin-top: 0.75rem; margin-bottom: 0.75rem; }
+.postBody .my-3\.5 { margin-top: 0.875rem; margin-bottom: 0.875rem; }
+.postBody .my-4 { margin-top: 1rem; margin-bottom: 1rem; }
+.postBody .my-5 { margin-top: 1.25rem; margin-bottom: 1.25rem; }
+.postBody .my-6 { margin-top: 1.5rem; margin-bottom: 1.5rem; }
+.postBody .my-8 { margin-top: 2rem; margin-bottom: 2rem; }
+.postBody .my-10 { margin-top: 2.5rem; margin-bottom: 2.5rem; }
+.postBody .my-12 { margin-top: 3rem; margin-bottom: 3rem; }
+.postBody .my-14 { margin-top: 3.5rem; margin-bottom: 3.5rem; }
+.postBody .my-16 { margin-top: 4rem; margin-bottom: 4rem; }
+.postBody .my-20 { margin-top: 5rem; margin-bottom: 5rem; }
+.postBody .my-24 { margin-top: 6rem; margin-bottom: 6rem; }
+.postBody .my-auto { margin-top: auto; margin-bottom: auto; }
+.postBody .mt-0 { margin-top: 0; }
+.postBody .mt-px { margin-top: 1px; }
+.postBody .mt-0\.5 { margin-top: 0.125rem; }
+.postBody .mt-1 { margin-top: 0.25rem; }
+.postBody .mt-1\.5 { margin-top: 0.375rem; }
+.postBody .mt-2 { margin-top: 0.5rem; }
+.postBody .mt-2\.5 { margin-top: 0.625rem; }
+.postBody .mt-3 { margin-top: 0.75rem; }
+.postBody .mt-3\.5 { margin-top: 0.875rem; }
+.postBody .mt-4 { margin-top: 1rem; }
+.postBody .mt-5 { margin-top: 1.25rem; }
+.postBody .mt-6 { margin-top: 1.5rem; }
+.postBody .mt-8 { margin-top: 2rem; }
+.postBody .mt-10 { margin-top: 2.5rem; }
+.postBody .mt-12 { margin-top: 3rem; }
+.postBody .mt-14 { margin-top: 3.5rem; }
+.postBody .mt-16 { margin-top: 4rem; }
+.postBody .mt-20 { margin-top: 5rem; }
+.postBody .mt-24 { margin-top: 6rem; }
+.postBody .mt-auto { margin-top: auto; }
+.postBody .mr-0 { margin-right: 0; }
+.postBody .mr-px { margin-right: 1px; }
+.postBody .mr-0\.5 { margin-right: 0.125rem; }
+.postBody .mr-1 { margin-right: 0.25rem; }
+.postBody .mr-1\.5 { margin-right: 0.375rem; }
+.postBody .mr-2 { margin-right: 0.5rem; }
+.postBody .mr-2\.5 { margin-right: 0.625rem; }
+.postBody .mr-3 { margin-right: 0.75rem; }
+.postBody .mr-3\.5 { margin-right: 0.875rem; }
+.postBody .mr-4 { margin-right: 1rem; }
+.postBody .mr-5 { margin-right: 1.25rem; }
+.postBody .mr-6 { margin-right: 1.5rem; }
+.postBody .mr-8 { margin-right: 2rem; }
+.postBody .mr-10 { margin-right: 2.5rem; }
+.postBody .mr-12 { margin-right: 3rem; }
+.postBody .mr-14 { margin-right: 3.5rem; }
+.postBody .mr-16 { margin-right: 4rem; }
+.postBody .mr-20 { margin-right: 5rem; }
+.postBody .mr-24 { margin-right: 6rem; }
+.postBody .mr-auto { margin-right: auto; }
+.postBody .mb-0 { margin-bottom: 0; }
+.postBody .mb-px { margin-bottom: 1px; }
+.postBody .mb-0\.5 { margin-bottom: 0.125rem; }
+.postBody .mb-1 { margin-bottom: 0.25rem; }
+.postBody .mb-1\.5 { margin-bottom: 0.375rem; }
+.postBody .mb-2 { margin-bottom: 0.5rem; }
+.postBody .mb-2\.5 { margin-bottom: 0.625rem; }
+.postBody .mb-3 { margin-bottom: 0.75rem; }
+.postBody .mb-3\.5 { margin-bottom: 0.875rem; }
+.postBody .mb-4 { margin-bottom: 1rem; }
+.postBody .mb-5 { margin-bottom: 1.25rem; }
+.postBody .mb-6 { margin-bottom: 1.5rem; }
+.postBody .mb-8 { margin-bottom: 2rem; }
+.postBody .mb-10 { margin-bottom: 2.5rem; }
+.postBody .mb-12 { margin-bottom: 3rem; }
+.postBody .mb-14 { margin-bottom: 3.5rem; }
+.postBody .mb-16 { margin-bottom: 4rem; }
+.postBody .mb-20 { margin-bottom: 5rem; }
+.postBody .mb-24 { margin-bottom: 6rem; }
+.postBody .mb-auto { margin-bottom: auto; }
+.postBody .ml-0 { margin-left: 0; }
+.postBody .ml-px { margin-left: 1px; }
+.postBody .ml-0\.5 { margin-left: 0.125rem; }
+.postBody .ml-1 { margin-left: 0.25rem; }
+.postBody .ml-1\.5 { margin-left: 0.375rem; }
+.postBody .ml-2 { margin-left: 0.5rem; }
+.postBody .ml-2\.5 { margin-left: 0.625rem; }
+.postBody .ml-3 { margin-left: 0.75rem; }
+.postBody .ml-3\.5 { margin-left: 0.875rem; }
+.postBody .ml-4 { margin-left: 1rem; }
+.postBody .ml-5 { margin-left: 1.25rem; }
+.postBody .ml-6 { margin-left: 1.5rem; }
+.postBody .ml-8 { margin-left: 2rem; }
+.postBody .ml-10 { margin-left: 2.5rem; }
+.postBody .ml-12 { margin-left: 3rem; }
+.postBody .ml-14 { margin-left: 3.5rem; }
+.postBody .ml-16 { margin-left: 4rem; }
+.postBody .ml-20 { margin-left: 5rem; }
+.postBody .ml-24 { margin-left: 6rem; }
+.postBody .ml-auto { margin-left: auto; }
+
+/* ── Padding ─────────────────────────────────────────────────────────── */
+.postBody .p-0 { padding: 0; }
+.postBody .p-px { padding: 1px; }
+.postBody .p-0\.5 { padding: 0.125rem; }
+.postBody .p-1 { padding: 0.25rem; }
+.postBody .p-1\.5 { padding: 0.375rem; }
+.postBody .p-2 { padding: 0.5rem; }
+.postBody .p-2\.5 { padding: 0.625rem; }
+.postBody .p-3 { padding: 0.75rem; }
+.postBody .p-3\.5 { padding: 0.875rem; }
+.postBody .p-4 { padding: 1rem; }
+.postBody .p-5 { padding: 1.25rem; }
+.postBody .p-6 { padding: 1.5rem; }
+.postBody .p-8 { padding: 2rem; }
+.postBody .p-10 { padding: 2.5rem; }
+.postBody .p-12 { padding: 3rem; }
+.postBody .p-14 { padding: 3.5rem; }
+.postBody .p-16 { padding: 4rem; }
+.postBody .p-20 { padding: 5rem; }
+.postBody .p-24 { padding: 6rem; }
+.postBody .px-0 { padding-left: 0; padding-right: 0; }
+.postBody .px-px { padding-left: 1px; padding-right: 1px; }
+.postBody .px-0\.5 { padding-left: 0.125rem; padding-right: 0.125rem; }
+.postBody .px-1 { padding-left: 0.25rem; padding-right: 0.25rem; }
+.postBody .px-1\.5 { padding-left: 0.375rem; padding-right: 0.375rem; }
+.postBody .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+.postBody .px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
+.postBody .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.postBody .px-3\.5 { padding-left: 0.875rem; padding-right: 0.875rem; }
+.postBody .px-4 { padding-left: 1rem; padding-right: 1rem; }
+.postBody .px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
+.postBody .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.postBody .px-8 { padding-left: 2rem; padding-right: 2rem; }
+.postBody .px-10 { padding-left: 2.5rem; padding-right: 2.5rem; }
+.postBody .px-12 { padding-left: 3rem; padding-right: 3rem; }
+.postBody .px-14 { padding-left: 3.5rem; padding-right: 3.5rem; }
+.postBody .px-16 { padding-left: 4rem; padding-right: 4rem; }
+.postBody .px-20 { padding-left: 5rem; padding-right: 5rem; }
+.postBody .px-24 { padding-left: 6rem; padding-right: 6rem; }
+.postBody .py-0 { padding-top: 0; padding-bottom: 0; }
+.postBody .py-px { padding-top: 1px; padding-bottom: 1px; }
+.postBody .py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
+.postBody .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.postBody .py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+.postBody .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.postBody .py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+.postBody .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.postBody .py-3\.5 { padding-top: 0.875rem; padding-bottom: 0.875rem; }
+.postBody .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.postBody .py-5 { padding-top: 1.25rem; padding-bottom: 1.25rem; }
+.postBody .py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.postBody .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+.postBody .py-10 { padding-top: 2.5rem; padding-bottom: 2.5rem; }
+.postBody .py-12 { padding-top: 3rem; padding-bottom: 3rem; }
+.postBody .py-14 { padding-top: 3.5rem; padding-bottom: 3.5rem; }
+.postBody .py-16 { padding-top: 4rem; padding-bottom: 4rem; }
+.postBody .py-20 { padding-top: 5rem; padding-bottom: 5rem; }
+.postBody .py-24 { padding-top: 6rem; padding-bottom: 6rem; }
+.postBody .pt-0 { padding-top: 0; }
+.postBody .pt-px { padding-top: 1px; }
+.postBody .pt-0\.5 { padding-top: 0.125rem; }
+.postBody .pt-1 { padding-top: 0.25rem; }
+.postBody .pt-1\.5 { padding-top: 0.375rem; }
+.postBody .pt-2 { padding-top: 0.5rem; }
+.postBody .pt-2\.5 { padding-top: 0.625rem; }
+.postBody .pt-3 { padding-top: 0.75rem; }
+.postBody .pt-3\.5 { padding-top: 0.875rem; }
+.postBody .pt-4 { padding-top: 1rem; }
+.postBody .pt-5 { padding-top: 1.25rem; }
+.postBody .pt-6 { padding-top: 1.5rem; }
+.postBody .pt-8 { padding-top: 2rem; }
+.postBody .pt-10 { padding-top: 2.5rem; }
+.postBody .pt-12 { padding-top: 3rem; }
+.postBody .pt-14 { padding-top: 3.5rem; }
+.postBody .pt-16 { padding-top: 4rem; }
+.postBody .pt-20 { padding-top: 5rem; }
+.postBody .pt-24 { padding-top: 6rem; }
+.postBody .pr-0 { padding-right: 0; }
+.postBody .pr-px { padding-right: 1px; }
+.postBody .pr-0\.5 { padding-right: 0.125rem; }
+.postBody .pr-1 { padding-right: 0.25rem; }
+.postBody .pr-1\.5 { padding-right: 0.375rem; }
+.postBody .pr-2 { padding-right: 0.5rem; }
+.postBody .pr-2\.5 { padding-right: 0.625rem; }
+.postBody .pr-3 { padding-right: 0.75rem; }
+.postBody .pr-3\.5 { padding-right: 0.875rem; }
+.postBody .pr-4 { padding-right: 1rem; }
+.postBody .pr-5 { padding-right: 1.25rem; }
+.postBody .pr-6 { padding-right: 1.5rem; }
+.postBody .pr-8 { padding-right: 2rem; }
+.postBody .pr-10 { padding-right: 2.5rem; }
+.postBody .pr-12 { padding-right: 3rem; }
+.postBody .pr-14 { padding-right: 3.5rem; }
+.postBody .pr-16 { padding-right: 4rem; }
+.postBody .pr-20 { padding-right: 5rem; }
+.postBody .pr-24 { padding-right: 6rem; }
+.postBody .pb-0 { padding-bottom: 0; }
+.postBody .pb-px { padding-bottom: 1px; }
+.postBody .pb-0\.5 { padding-bottom: 0.125rem; }
+.postBody .pb-1 { padding-bottom: 0.25rem; }
+.postBody .pb-1\.5 { padding-bottom: 0.375rem; }
+.postBody .pb-2 { padding-bottom: 0.5rem; }
+.postBody .pb-2\.5 { padding-bottom: 0.625rem; }
+.postBody .pb-3 { padding-bottom: 0.75rem; }
+.postBody .pb-3\.5 { padding-bottom: 0.875rem; }
+.postBody .pb-4 { padding-bottom: 1rem; }
+.postBody .pb-5 { padding-bottom: 1.25rem; }
+.postBody .pb-6 { padding-bottom: 1.5rem; }
+.postBody .pb-8 { padding-bottom: 2rem; }
+.postBody .pb-10 { padding-bottom: 2.5rem; }
+.postBody .pb-12 { padding-bottom: 3rem; }
+.postBody .pb-14 { padding-bottom: 3.5rem; }
+.postBody .pb-16 { padding-bottom: 4rem; }
+.postBody .pb-20 { padding-bottom: 5rem; }
+.postBody .pb-24 { padding-bottom: 6rem; }
+.postBody .pl-0 { padding-left: 0; }
+.postBody .pl-px { padding-left: 1px; }
+.postBody .pl-0\.5 { padding-left: 0.125rem; }
+.postBody .pl-1 { padding-left: 0.25rem; }
+.postBody .pl-1\.5 { padding-left: 0.375rem; }
+.postBody .pl-2 { padding-left: 0.5rem; }
+.postBody .pl-2\.5 { padding-left: 0.625rem; }
+.postBody .pl-3 { padding-left: 0.75rem; }
+.postBody .pl-3\.5 { padding-left: 0.875rem; }
+.postBody .pl-4 { padding-left: 1rem; }
+.postBody .pl-5 { padding-left: 1.25rem; }
+.postBody .pl-6 { padding-left: 1.5rem; }
+.postBody .pl-8 { padding-left: 2rem; }
+.postBody .pl-10 { padding-left: 2.5rem; }
+.postBody .pl-12 { padding-left: 3rem; }
+.postBody .pl-14 { padding-left: 3.5rem; }
+.postBody .pl-16 { padding-left: 4rem; }
+.postBody .pl-20 { padding-left: 5rem; }
+.postBody .pl-24 { padding-left: 6rem; }
+
+/* ── Gap ─────────────────────────────────────────────────────────────── */
+.postBody .gap-0 { gap: 0; }
+.postBody .gap-px { gap: 1px; }
+.postBody .gap-0\.5 { gap: 0.125rem; }
+.postBody .gap-1 { gap: 0.25rem; }
+.postBody .gap-1\.5 { gap: 0.375rem; }
+.postBody .gap-2 { gap: 0.5rem; }
+.postBody .gap-2\.5 { gap: 0.625rem; }
+.postBody .gap-3 { gap: 0.75rem; }
+.postBody .gap-3\.5 { gap: 0.875rem; }
+.postBody .gap-4 { gap: 1rem; }
+.postBody .gap-5 { gap: 1.25rem; }
+.postBody .gap-6 { gap: 1.5rem; }
+.postBody .gap-8 { gap: 2rem; }
+.postBody .gap-10 { gap: 2.5rem; }
+.postBody .gap-12 { gap: 3rem; }
+.postBody .gap-14 { gap: 3.5rem; }
+.postBody .gap-16 { gap: 4rem; }
+.postBody .gap-20 { gap: 5rem; }
+.postBody .gap-24 { gap: 6rem; }
+.postBody .gap-x-0 { column-gap: 0; }
+.postBody .gap-x-px { column-gap: 1px; }
+.postBody .gap-x-0\.5 { column-gap: 0.125rem; }
+.postBody .gap-x-1 { column-gap: 0.25rem; }
+.postBody .gap-x-1\.5 { column-gap: 0.375rem; }
+.postBody .gap-x-2 { column-gap: 0.5rem; }
+.postBody .gap-x-2\.5 { column-gap: 0.625rem; }
+.postBody .gap-x-3 { column-gap: 0.75rem; }
+.postBody .gap-x-3\.5 { column-gap: 0.875rem; }
+.postBody .gap-x-4 { column-gap: 1rem; }
+.postBody .gap-x-5 { column-gap: 1.25rem; }
+.postBody .gap-x-6 { column-gap: 1.5rem; }
+.postBody .gap-x-8 { column-gap: 2rem; }
+.postBody .gap-x-10 { column-gap: 2.5rem; }
+.postBody .gap-x-12 { column-gap: 3rem; }
+.postBody .gap-x-14 { column-gap: 3.5rem; }
+.postBody .gap-x-16 { column-gap: 4rem; }
+.postBody .gap-x-20 { column-gap: 5rem; }
+.postBody .gap-x-24 { column-gap: 6rem; }
+.postBody .gap-y-0 { row-gap: 0; }
+.postBody .gap-y-px { row-gap: 1px; }
+.postBody .gap-y-0\.5 { row-gap: 0.125rem; }
+.postBody .gap-y-1 { row-gap: 0.25rem; }
+.postBody .gap-y-1\.5 { row-gap: 0.375rem; }
+.postBody .gap-y-2 { row-gap: 0.5rem; }
+.postBody .gap-y-2\.5 { row-gap: 0.625rem; }
+.postBody .gap-y-3 { row-gap: 0.75rem; }
+.postBody .gap-y-3\.5 { row-gap: 0.875rem; }
+.postBody .gap-y-4 { row-gap: 1rem; }
+.postBody .gap-y-5 { row-gap: 1.25rem; }
+.postBody .gap-y-6 { row-gap: 1.5rem; }
+.postBody .gap-y-8 { row-gap: 2rem; }
+.postBody .gap-y-10 { row-gap: 2.5rem; }
+.postBody .gap-y-12 { row-gap: 3rem; }
+.postBody .gap-y-14 { row-gap: 3.5rem; }
+.postBody .gap-y-16 { row-gap: 4rem; }
+.postBody .gap-y-20 { row-gap: 5rem; }
+.postBody .gap-y-24 { row-gap: 6rem; }
+
+/* ── Space between children ────────────────────────────────────────────
+   Tailwind's own `space-*` is a margin on every child but the first; ours is the same rule
+   without the reverse-order custom property, which needs a variant we do not support anyway.
+   */
+.postBody .space-x-0 > * + * { margin-left: 0; }
+.postBody .space-x-px > * + * { margin-left: 1px; }
+.postBody .space-x-0\.5 > * + * { margin-left: 0.125rem; }
+.postBody .space-x-1 > * + * { margin-left: 0.25rem; }
+.postBody .space-x-1\.5 > * + * { margin-left: 0.375rem; }
+.postBody .space-x-2 > * + * { margin-left: 0.5rem; }
+.postBody .space-x-2\.5 > * + * { margin-left: 0.625rem; }
+.postBody .space-x-3 > * + * { margin-left: 0.75rem; }
+.postBody .space-x-4 > * + * { margin-left: 1rem; }
+.postBody .space-x-5 > * + * { margin-left: 1.25rem; }
+.postBody .space-x-6 > * + * { margin-left: 1.5rem; }
+.postBody .space-x-8 > * + * { margin-left: 2rem; }
+.postBody .space-x-10 > * + * { margin-left: 2.5rem; }
+.postBody .space-x-12 > * + * { margin-left: 3rem; }
+.postBody .space-y-0 > * + * { margin-top: 0; }
+.postBody .space-y-px > * + * { margin-top: 1px; }
+.postBody .space-y-0\.5 > * + * { margin-top: 0.125rem; }
+.postBody .space-y-1 > * + * { margin-top: 0.25rem; }
+.postBody .space-y-1\.5 > * + * { margin-top: 0.375rem; }
+.postBody .space-y-2 > * + * { margin-top: 0.5rem; }
+.postBody .space-y-2\.5 > * + * { margin-top: 0.625rem; }
+.postBody .space-y-3 > * + * { margin-top: 0.75rem; }
+.postBody .space-y-4 > * + * { margin-top: 1rem; }
+.postBody .space-y-5 > * + * { margin-top: 1.25rem; }
+.postBody .space-y-6 > * + * { margin-top: 1.5rem; }
+.postBody .space-y-8 > * + * { margin-top: 2rem; }
+.postBody .space-y-10 > * + * { margin-top: 2.5rem; }
+.postBody .space-y-12 > * + * { margin-top: 3rem; }

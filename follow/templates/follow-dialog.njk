@@ -1,0 +1,60 @@
+{# The follow dialog of rssdirectory.org and sodir.org, filled and opened by lib/follow/src/follow.ts
+   for the Follow button that was clicked. Styles: lib/follow/css/follow-dialog.css, colored by the
+   site's --fd-* variables.
+   readers: [{name, url}] (the site's site.json5; none is preselected unless the visitor remembered
+   one), back: where "← Back" returns to (default: the feed), newText/moreUrl: the "New to RSS?" box
+   for visitors without a reader, nameFeed: whether the hint names the feed (#fd-feed-name),
+   readersNote: HTML under the readers, e.g. why they are listed (none by default).
+   The readers are shuffled every time the dialog opens, unless the dialog has data-order="fixed"
+   (webpup builds its own markup with that). #}
+{% macro followDialog(readers, back = '',
+    newText = 'An RSS reader collects new posts from every site you follow into one list — in order, without an algorithm deciding what you see. Pick one of the readers above, then come back to Follow.',
+    moreUrl = '', nameFeed = true, readersNote = '') %}
+<dialog id="follow-dialog" class="fd" aria-labelledby="fd-title"{% if back %} data-back="{{ back }}"{% endif %}>
+    <div class="fd-head">
+        <img id="fd-icon" class="feed-icon" width="64" height="64" alt="" />
+        <div class="fd-head-text">
+            <div class="kicker">Follow</div>
+            <h2 id="fd-title" class="display"></h2>
+            <div id="fd-meta" class="fd-meta"></div>
+        </div>
+        <button type="button" class="fd-close" data-fd-close aria-label="Close"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></svg></button>
+    </div>
+    <div class="fd-step">
+        <div class="fd-step-title"><b>1</b><h3>Which reader do you use?</h3></div>
+        <div class="fd-readers" role="radiogroup" aria-label="Reader">
+            {% for r in readers %}
+            <button type="button" role="radio" aria-checked="false" class="fd-reader" data-reader="{{ r.name }}" data-reader-url="{{ r.url }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>{{ r.name }}</button>
+            {% endfor %}
+            {# Always last: not shuffled (follow.ts). #}
+            <button type="button" role="radio" aria-checked="false" class="fd-reader fd-reader-custom" data-reader="Custom" data-label="your reader" data-custom><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="fd-wrench"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>Custom</button>
+        </div>
+        {% if readersNote %}<p class="fd-readers-note">{{ readersNote | safe }}</p>{% endif %}
+        <div class="fd-custom" hidden>
+            <label for="fd-custom-url">Your reader’s subscribe URL</label>
+            <input id="fd-custom-url" class="input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="fd-custom-hint fd-custom-error" />
+            <p id="fd-custom-hint" class="fd-custom-hint"><code>{URL}</code> is replaced by the feed’s URL: encoded when it is a parameter (after “?”), as it is in a path. Other schemes than https, like <code>feed:{URL}</code>, work too.</p>
+            <p id="fd-custom-error" class="fd-custom-error" hidden></p>
+        </div>
+        <label class="fd-remember"><input type="checkbox" id="fd-remember" /><span>Remember <span class="fd-reader-name"></span>. Next time, Follow goes straight there.</span></label>
+        <button type="button" class="fd-none" data-reader="">I don’t have a reader yet</button>
+    </div>
+    <div class="fd-step fd-step-2">
+        <div class="fd-step-title"><b>2</b><h3>Follow it</h3></div>
+        <div class="fd-open-box">
+            <a id="fd-open" class="fd-open" href="#" target="_blank" rel="nofollow noopener"><span>Open in <span class="fd-reader-name"></span></span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></a>
+            <p class="fd-hint">Opens <span class="fd-reader-name"></span> in a new tab{% if nameFeed %} with <span id="fd-feed-name"></span>{% else %},{% endif %} ready to confirm.</p>
+        </div>
+        <div class="fd-new" hidden>
+            <div class="fd-new-title">New to RSS?</div>
+            <p>{{ newText }}</p>
+            {% if moreUrl %}<a href="{{ moreUrl }}">More about feed readers →</a>{% endif %}
+        </div>
+        <div class="fd-manual">
+            <div class="kicker">Or add it by hand — paste this into any reader</div>
+            <div class="fd-url-box"><input id="fd-url" type="text" readonly spellcheck="false" aria-label="Feed URL" /><button type="button" id="fd-copy">Copy</button></div>
+        </div>
+    </div>
+    <div class="fd-foot"><button type="button" class="fd-back" data-fd-close>← <span id="fd-back"></span></button></div>
+</dialog>
+{% endmacro %}

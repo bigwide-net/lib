@@ -1,0 +1,91 @@
+/* The follow dialog (follow/templates/follow-dialog.njk, follow/src/follow.ts), shared by
+   rssdirectory.org and sodir.org. Uses the sites' common variables (--ink, --paper, --line, fonts…)
+   and these, which each site sets:
+     --fd-accent, --fd-accent-hover: the "Open in" button, the Copy button when copied
+     --fd-on-accent: text on the accent
+     --fd-accent-on-dark: the Copy button's text on ink
+     --fd-text-font (optional): the text font, default var(--serif) */
+
+.fd { width: min(820px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 1px solid var(--ink); border-radius: 6px; background: var(--white); color: var(--ink); font-family: var(--fd-text-font, var(--serif)); box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35); }
+/* Nothing in the dialog is selectable but its input fields (the feed URL has a Copy button). */
+.fd { -webkit-user-select: none; user-select: none; }
+.fd input { -webkit-user-select: text; user-select: text; }
+.fd::backdrop { background: rgba(26, 24, 20, 0.75); }
+.fd-head { display: flex; align-items: center; gap: 20px; padding: 22px 24px 22px 32px; background: var(--paper); border-top: 6px solid var(--fd-accent); border-bottom: 1px solid var(--line); }
+.fd-head .feed-icon { width: 64px; height: 64px; flex: none; }
+.fd-head-text { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fd-head .kicker { font-size: 12px; letter-spacing: 0.16em; }
+.fd-head h2 { font-size: 38px; line-height: 0.95; overflow-wrap: anywhere; }
+.fd-meta { font-family: var(--mono); font-size: 14px; }
+.fd-close { flex: none; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 4px; background: var(--white); color: var(--ink); cursor: pointer; }
+.fd-step { padding: 32px 32px 12px; display: flex; flex-direction: column; gap: 18px; }
+.fd-step-2 { padding: 20px 32px 32px; border-top: 1px solid var(--line-soft); }
+.fd-step-title { display: flex; align-items: baseline; gap: 14px; }
+.fd-step-title b { font-family: var(--display); font-stretch: 75%; font-weight: 900; font-size: 36px; line-height: 1; }
+.fd-step-title h3 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 24px; }
+.fd-readers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+/* The top padding moves the label down by half of it: Newsreader's capitals sit 0.1em above the middle of its line box. */
+.fd-reader { height: 60px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.2em 0 0; border: 1px solid var(--dashed); border-radius: 4px; background: var(--white); color: var(--ink); font-family: var(--fd-text-font, var(--serif)); font-size: 19px; cursor: pointer; -webkit-user-select: none; user-select: none; }
+.fd-reader[hidden] { display: none; }
+.fd-reader svg { display: none; }
+.fd-reader:hover { border-color: var(--ink); }
+.fd-reader[aria-checked="true"] { border: 2px solid var(--ink); background: var(--ink); color: var(--white); font-weight: 600; }
+.fd-reader[aria-checked="true"] svg { display: block; }
+.fd-reader .fd-wrench { display: flex; }
+.fd-reader .fd-wrench svg { display: block; }
+.fd-reader[aria-checked="true"] .fd-wrench { display: none; }
+.fd-custom { display: flex; flex-direction: column; gap: 8px; }
+.fd-custom label { font-size: 18px; font-weight: 600; }
+.fd-custom .input { font-family: var(--mono); font-size: 16px; }
+.fd-custom .input[aria-invalid="true"] { border-color: var(--error); }
+.fd-readers-note { margin: 0; font-size: 15px; line-height: 1.45; color: var(--text-2); }
+.fd-custom-hint { font-size: 16px; line-height: 1.45; color: var(--text-2); }
+.fd-custom-hint code { font-family: var(--mono); font-size: 14px; color: var(--ink); }
+.fd-custom-error { font-size: 16px; font-weight: 600; color: var(--error); }
+.fd-none { align-self: flex-start; height: 44px; padding: 0; border: 0; background: transparent; color: var(--ink); font-family: var(--fd-text-font, var(--serif)); font-size: 18px; text-decoration: underline; cursor: pointer; }
+.fd-open-box { display: flex; flex-direction: column; gap: 14px; }
+.fd-open {
+    display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 64px; padding: 8px 16px; border: 2px solid var(--ink); border-radius: 4px; background: var(--fd-accent); color: var(--fd-on-accent); text-decoration: none; text-align: center;
+    font-family: var(--display); font-stretch: 75%; font-weight: 800; font-size: 24px; text-transform: uppercase; letter-spacing: 0.06em; -webkit-user-select: none; user-select: none;
+}
+.fd-open:hover { color: var(--fd-on-accent); background: var(--fd-accent-hover); }
+.fd-open[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+.fd-open[aria-disabled="true"]:hover { background: var(--fd-accent); }
+.fd-hint { font-size: 18px; line-height: 1.45; color: var(--text-2); }
+.fd-remember { display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 18px; cursor: pointer; }
+.fd-remember[hidden] { display: none; }
+.fd-remember input { width: 22px; height: 22px; margin: 0; flex: none; accent-color: var(--ink); }
+.fd-new { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 20px 22px; display: flex; flex-direction: column; gap: 8px; }
+.fd-new[hidden], .fd-open-box[hidden], .fd-custom[hidden] { display: none; }
+.fd-new-title { font-family: var(--display); font-weight: 700; font-size: 20px; }
+.fd-new p { font-size: 18px; line-height: 1.5; }
+.fd-new a { font-size: 18px; font-weight: 600; }
+.fd-manual { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.fd-manual .kicker { font-size: 12px; }
+.fd-url-box { display: flex; min-width: 0; }
+.fd-url-box input { flex-grow: 1; min-width: 0; height: 52px; padding: 0 16px; border: 2px solid var(--ink); border-right: 0; background: var(--paper); color: var(--ink); font-family: var(--mono); font-size: 16px; border-radius: 4px 0 0 4px; text-overflow: ellipsis; outline: none; cursor: text; }
+.fd-url-box input::selection { background: var(--fd-accent); color: var(--fd-on-accent); }
+.fd-url-box button { flex: none; height: 52px; min-width: 128px; padding: 0 20px; border: 2px solid var(--ink); background: var(--ink); color: var(--fd-accent-on-dark); font-family: var(--display); font-stretch: 75%; font-weight: 800; font-size: 18px; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; border-radius: 0 4px 4px 0; -webkit-user-select: none; user-select: none; transition: background-color 0.15s, color 0.15s; }
+.fd-url-box button[data-state="copied"] { background: var(--fd-accent); color: var(--fd-on-accent); }
+.fd-url-box button[data-state="failed"] { border-color: var(--error); background: var(--error); color: var(--white); }
+.fd-foot { border-top: 1px solid var(--line); background: var(--paper); padding: 14px 32px; font-size: 17px; }
+.fd-back { padding: 0; border: 0; background: transparent; color: var(--ink); font-family: var(--fd-text-font, var(--serif)); font-size: 17px; text-decoration: underline; cursor: pointer; }
+
+@media (max-width: 720px) {
+    .fd-head { padding: 16px; gap: 14px; }
+    .fd-head .feed-icon { width: 48px; height: 48px; }
+    .fd-head h2 { font-size: 24px; }
+    .fd-meta { font-size: 12px; }
+    .fd-close { width: 40px; height: 40px; }
+    .fd-step { padding: 20px 16px 8px; gap: 14px; }
+    .fd-step-2 { padding: 16px 16px 20px; }
+    .fd-step-title b { font-size: 28px; }
+    .fd-step-title h3 { font-size: 20px; }
+    .fd-readers { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .fd-reader { height: 48px; font-size: 17px; }
+    .fd-open { min-height: 52px; font-size: 19px; }
+    .fd-hint, .fd-remember, .fd-new p { font-size: 16px; }
+    .fd-url-box code { height: 44px; line-height: 40px; font-size: 13px; padding: 0 10px; }
+    .fd-url-box button { height: 44px; min-width: 0; padding: 0 14px; font-size: 16px; }
+    .fd-foot { padding: 12px 16px; }
+}
